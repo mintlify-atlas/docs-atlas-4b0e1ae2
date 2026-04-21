@@ -1,0 +1,111 @@
+---
+title: 'Yoast SEO and WooCommerce: integration guide'
+description: 'How Yoast SEO integrates with WooCommerce: shop page metadata, breadcrumb coordination, permalink cache invalidation, and product structured data options.'
+---
+
+Yoast SEO includes a built-in integration with WooCommerce that activates automatically when WooCommerce is installed and active. This integration handles shop page metadata, breadcrumb coordination, pagination canonicals, and structured data for product pages — giving your store a solid SEO foundation out of the box.
+
+<Note>
+  Advanced product SEO features such as product-specific SEO analysis, GTIN/ISBN/MPN identifier fields, and additional Product schema output are available in the separate [Yoast WooCommerce SEO](https://yoast.com/wordpress/plugins/yoast-woocommerce-seo/) premium addon, not in Yoast SEO Free.
+</Note>
+
+## How the integration works
+
+The integration is loaded conditionally: it only activates on the front end when WooCommerce is detected (`WooCommerce_Conditional` + `Front_End_Conditional`). A second component, `WooCommerce_Post_Edit`, loads in the post editor context to adjust the Google preview for product post types.
+
+When active, the integration registers several WordPress filters to take control of:
+
+- **Title and meta description** — Falls back to the `title-product` and `metadesc-product` option templates (with replacement variables resolved) when no per-page override is set.
+- **Canonical URL** — Computes the correct paginated canonical for the shop archive, accounting for the current page number.
+- **Adjacent rel links** — Outputs correct `rel="prev"` and `rel="next"` links for paginated shop pages.
+- **Breadcrumbs** — Replaces the `post-type-archive` indexable for the `product` type with the actual shop page indexable so breadcrumbs point to the configured shop page.
+
+## Shop page configuration
+
+WooCommerce lets you designate any WordPress page as the shop page under **WooCommerce → Settings → Products → Shop page**. Yoast SEO reads this setting via `wc_get_page_id( 'shop' )` to:
+
+1. Identify when a visitor is viewing the shop page, even though WordPress treats it as an archive.
+2. Resolve the correct page ID so the Yoast metabox settings (title, description, robots) saved against that page are applied to the shop archive.
+3. Insert the shop page as a breadcrumb ancestor for individual product pages.
+
+To control the title and meta description of the shop page, open the page you've set as your shop page in the WordPress editor and edit the Yoast SEO metabox fields there.
+
+## Breadcrumbs
+
+Both WooCommerce and Yoast SEO can output breadcrumb trails. Using both at the same time produces duplicate markup.
+
+<Tabs>
+  <Tab title="Using Yoast breadcrumbs (recommended)">
+    Enable Yoast SEO breadcrumbs under **Yoast SEO → Settings → General → Breadcrumbs** and output them in your theme with:
+
+    ```php
+    <?php
+    if ( function_exists( 'yoast_breadcrumb' ) ) {
+        yoast_breadcrumb( '<nav class="breadcrumbs">', '</nav>' );
+    }
+    ```
+
+    When Yoast breadcrumbs are active the integration automatically replaces the generic product archive entry with the shop page indexable, so breadcrumbs read correctly (e.g., Home → Shop → Category → Product).
+  </Tab>
+  <Tab title="Using WooCommerce breadcrumbs">
+    If you prefer WooCommerce's native breadcrumbs, keep Yoast breadcrumbs disabled. WooCommerce outputs its own trail via `woocommerce_breadcrumb()`. You do not need to do anything in Yoast SEO — the filter that swaps the shop page breadcrumb only fires when Yoast's breadcrumb output is used.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Do not call both `yoast_breadcrumb()` and `woocommerce_breadcrumb()` on the same page. This produces duplicate navigation landmarks and confuses both users and crawlers.
+</Warning>
+
+## Permalink handling
+
+When WooCommerce permalink settings change (product base, category base, tag base, or attribute base), Yoast SEO needs to rebuild its indexable permalink cache. The `Woocommerce_Permalinks` integration handles this automatically by listening to the `update_option_woocommerce_permalinks` action and resetting the affected indexables:
+
+| Changed setting     | Indexables reset                          |
+| ------------------- | ----------------------------------------- |
+| `product_base`      | All `post` indexables of type `product`   |
+| `category_base`     | All `term` indexables for `product_cat`   |
+| `tag_base`          | All `term` indexables for `product_tag`   |
+| `attribute_base`    | All `term` indexables for each attribute taxonomy |
+
+This reset happens in the background; no manual action is required after updating WooCommerce permalinks.
+
+## Google preview in the product editor
+
+In the WordPress post editor for products, Yoast SEO suppresses the date in the Google preview snippet. Google does not show publication dates in search results for product pages, so displaying a date in the preview would be misleading. This is handled by `WooCommerce_Post_Edit`, which sets `metaDescriptionDate` to an empty string for the `product` post type.
+
+## Product schema and structured data
+
+Yoast SEO Free outputs standard `WebPage` and `BreadcrumbList` schema on product pages. For full e-commerce structured data — including `Product`, `Offer`, and `AggregateRating` types that enable Google's rich result features such as price, availability, and star ratings — you need the Yoast WooCommerce SEO addon.
+
+<AccordionGroup>
+  <Accordion title="Schema types in Yoast WooCommerce SEO (premium addon)">
+    The premium addon extends the schema graph with:
+
+    - **Product** — Name, description, image, SKU, and brand.
+    - **Offer** — Price, currency, availability (`InStock`, `OutOfStock`, `PreOrder`), and URL.
+    - **AggregateRating** — Pulls from WooCommerce reviews to output `ratingValue` and `reviewCount`.
+
+    These types are required for Google's [Product rich results](https://developers.google.com/search/docs/appearance/structured-data/product).
+  </Accordion>
+  <Accordion title="Product identifiers for rich results">
+    Google recommends including product identifiers to improve rich result eligibility. The Yoast WooCommerce SEO addon adds input fields in the product editor for:
+
+    - **GTIN-8, GTIN-12, GTIN-13, GTIN-14** (barcodes)
+    - **ISBN** (books)
+    - **MPN** (Manufacturer Part Number)
+
+    Values entered here are included in the `Product` schema output as `gtin8`, `gtin12`, `gtin13`, `gtin14`, `isbn`, and `mpn` properties.
+  </Accordion>
+  <Accordion title="Product category SEO">
+    WooCommerce product categories (`product_cat` taxonomy) are treated as standard taxonomy term archives by Yoast SEO. You can set a custom title, meta description, and robots setting for each category via **Products → Categories → [category] → Yoast SEO** in the WordPress admin.
+  </Accordion>
+</AccordionGroup>
+
+## Requirements
+
+| Requirement          | Version  |
+| -------------------- | -------- |
+| WordPress            | 6.4+     |
+| WooCommerce          | 8.0+     |
+| Yoast SEO            | Latest   |
+| Yoast WooCommerce SEO (optional) | Latest |

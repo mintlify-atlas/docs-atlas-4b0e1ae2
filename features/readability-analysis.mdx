@@ -1,0 +1,160 @@
+---
+title: "Readability Analysis: Write Content Humans Can Read"
+description: "Learn how Yoast SEO scores readability with sentence length, passive voice, transition words, Flesch Reading Ease, and subheading checks in 22 languages."
+---
+
+Yoast SEO's readability analysis helps you write content that is easy to understand for human readers. Better readability improves dwell time, reduces bounce rate, and ultimately supports your SEO goals. Like the SEO analysis, each check uses a red/orange/green traffic-light system. The overall readability score is displayed as a separate bullet alongside the SEO score in the Yoast SEO metabox.
+
+## How readability scoring works
+
+Each readability assessment produces a numeric score (1–9), which maps to a traffic-light color using the same thresholds as the SEO analysis:
+
+- **Green (7–9):** The check passes.
+- **Orange (5–6):** Marginal — consider improvements.
+- **Red (1–4):** Needs attention.
+
+The overall readability bullet reflects the worst-performing individual check. Not all checks apply to every language — see the language support table below.
+
+## Readability assessments
+
+### Sentence length
+
+Yoast SEO counts the words in every sentence and flags sentences that exceed the recommended maximum of **20 words** (the threshold is language-specific and can differ). If more than **25 %** of your sentences are over the limit, the score drops to orange (6). Above **30 %**, it turns red (3). The assessment highlights too-long sentences directly in the Block Editor so you can shorten them.
+
+```
+Green  → ≤ 25 % of sentences over 20 words
+Orange → 25 %–30 % of sentences over 20 words
+Red    → > 30 % of sentences over 20 words
+```
+
+### Paragraph length
+
+Checks that individual paragraphs do not exceed 150 words (or a language-specific limit). Long paragraphs are visually overwhelming and discourage readers. The assessment marks paragraphs that are too long so you can split them.
+
+### Subheading distribution
+
+Checks that no section of your content runs longer than **300 words** without a subheading (H2–H6). For long texts without any subheadings, the check produces a red score (2). For sections slightly over the limit (300–350 words), an orange score (6) is given.
+
+```
+Green  → All sections ≤ 300 words between subheadings
+Orange → A section is 300–350 words
+Red    → A section is > 350 words, or no subheadings in a long text
+```
+
+### Transition words
+
+Transition words (e.g., "however", "therefore", "in addition") help readers follow the logical flow of a text. Yoast SEO checks the percentage of sentences that contain at least one transition word.
+
+```
+Green  → ≥ 30 % of sentences contain a transition word
+Orange → 20 %–30 % of sentences contain a transition word
+Red    → < 20 % of sentences contain a transition word
+```
+
+Texts shorter than 200 words are exempted from this check.
+
+### Passive voice
+
+Passive constructions (e.g., "The article was written by…") can make text harder to follow. Yoast SEO flags sentences written in passive voice and recommends keeping them below **10 %** of all sentences.
+
+```
+Green  → ≤ 10 % passive sentences
+Orange → 10 %–15 % passive sentences
+Red    → > 15 % passive sentences
+```
+
+### Consecutive sentence beginnings
+
+Checks that consecutive sentences do not start with the same word. Repetitive sentence openings make text feel monotonous. A maximum of two consecutive sentences with the same opening word is allowed before triggering an orange or red score.
+
+### Text presence
+
+A basic guard that confirms the post body contains actual text (not just images or empty blocks). Returns red if no text is found.
+
+### Text alignment (Block Editor only)
+
+Warns when large blocks of text use full (justified) alignment, which can create uneven spacing and reduce readability on smaller screens.
+
+### Word complexity (Premium)
+
+Available in Yoast SEO Premium. Identifies words that are unnecessarily complex and suggests simpler alternatives.
+
+## Flesch Reading Ease explained
+
+The **Flesch Reading Ease** score is a formula-based readability metric developed by Rudolf Flesch in 1948. It rates text on a 0–100 scale based on average sentence length and average number of syllables per word.
+
+| Score range | Reading difficulty | Typical reader |
+|-------------|-------------------|----------------|
+| 90 – 100 | Very easy | 5th grade |
+| 70 – 90 | Easy | 6th grade |
+| 60 – 70 | Standard | 7th grade |
+| 50 – 60 | Fairly difficult | High school |
+| 30 – 50 | Difficult | College student |
+| 0 – 30 | Very difficult | College graduate |
+
+Yoast SEO targets a score of **60 or above** for general web content. A score below 60 turns orange; below 30 turns red. The Flesch formula is only available in languages for which the formula has been validated — see the language table.
+
+<Info>
+The Flesch Reading Ease formula was designed for English. Scores for other languages (German, Dutch, French, etc.) use adapted formulas but may not be perfectly comparable to the English scale.
+</Info>
+
+## Tips for improving your readability score
+
+<Steps>
+  <Step title="Shorten your sentences">
+    Break sentences that exceed 20 words at natural conjunctions ("and", "but", "because"). Try to keep most sentences under 15 words.
+  </Step>
+  <Step title="Split long paragraphs">
+    Each paragraph should cover one idea. If a paragraph runs longer than 150 words, find a logical break point and start a new paragraph.
+  </Step>
+  <Step title="Use subheadings every 300 words">
+    Subheadings act as signposts for readers who scan. Add an H2 or H3 at least every 300 words for long-form content.
+  </Step>
+  <Step title="Use active voice">
+    Rewrite passive constructions to active ones. "The team published the report" is clearer than "The report was published by the team."
+  </Step>
+  <Step title="Add transition words">
+    Use words like "furthermore", "as a result", "in contrast", and "for example" to connect ideas and guide the reader through your argument.
+  </Step>
+  <Step title="Vary sentence openings">
+    Avoid starting three or more consecutive sentences with the same word (especially "The" or "This").
+  </Step>
+</Steps>
+
+## Language support
+
+The table below shows which readability assessments are available for each supported language.
+
+| Language | Transition words | Flesch Reading Ease | Passive voice | Sentence beginnings | Sentence length |
+|----------|-----------------|-------------------|---------------|--------------------|-----------------| 
+| English | ✅ | ✅ | ✅ | ✅ | ✅ |
+| German | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Dutch | ✅ | ✅ | ✅ | ✅ | ✅ |
+| French | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Spanish | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Italian | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Portuguese | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Russian | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Catalan | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Polish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Swedish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Hungarian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Indonesian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Arabic | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Hebrew | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Farsi | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Turkish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Norwegian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Czech | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Slovak | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Greek | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Japanese | ✅ | ❌ | ❌ | ✅ | ✅ |
+
+**Notes:**
+- Flesch Reading Ease is not available for languages without an established formula.
+- Passive voice detection for Japanese is not implemented because the passive, potential, and honorific verb forms are structurally identical and cannot be reliably distinguished without contextual information.
+- The following checks apply to **all** supported languages regardless of the table above: sentence length, paragraph length, subheading distribution, and text presence.
+
+<Note>
+The sentence-length check uses a default upper limit of 20 words, but this threshold has been verified and may be adjusted for individual languages based on linguistic research.
+</Note>

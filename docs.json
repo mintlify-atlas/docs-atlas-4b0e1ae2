@@ -1,122 +1,100 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Yoast SEO",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#8abd46",
+    "light": "#a12b6a",
+    "dark": "#cd90b4"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/002c503a-9c1a-4cb9-8d33-da3f674ba98e.png",
+  "logo": {
+    "light": "https://media.brand.dev/beddc681-1adb-4870-9b45-3ad71c883513.svg",
+    "dark": "https://media.brand.dev/beddc681-1adb-4870-9b45-3ad71c883513.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Yoast/wordpress-seo"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Yoast/wordpress-seo"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Features",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "features/seo-analysis",
+              "features/readability-analysis",
+              "features/xml-sitemaps",
+              "features/schema-structured-data",
+              "features/social-metadata"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Configuration",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "configuration/general-settings",
+              "configuration/breadcrumbs",
+              "configuration/robots-txt",
+              "configuration/crawl-settings"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Integrations",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "integrations/woocommerce",
+              "integrations/elementor",
+              "integrations/third-party"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Developer Guide",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "YoastSEO.js Library",
             "pages": [
-              "api-reference/introduction"
+              "developer/yoastseo-js",
+              "developer/paper",
+              "developer/assessments",
+              "developer/researchers"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "WordPress Integration",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "developer/php-hooks-filters",
+              "developer/rest-api",
+              "developer/indexables"
+            ]
+          },
+          {
+            "group": "Extending Yoast SEO",
+            "pages": [
+              "developer/custom-assessments",
+              "developer/schema-customization",
+              "developer/contributing"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

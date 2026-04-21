@@ -1,0 +1,106 @@
+---
+title: 'Using Yoast SEO inside the Elementor editor'
+description: 'Access the full Yoast SEO panel in Elementor to optimize titles, meta descriptions, schema, and social metadata directly inside the page builder interface.'
+---
+
+Yoast SEO injects its full SEO panel into the Elementor editor so you can optimize page titles, meta descriptions, slug, social previews, and schema settings without switching to a different screen. The panel behaves the same way as the classic metabox in the standard WordPress block editor, with a few differences specific to the Elementor environment.
+
+## How the integration loads
+
+The integration is controlled by the `Elementor_Edit_Conditional`, which activates only when Elementor's editor interface is present. On load, Yoast SEO:
+
+1. Registers and enqueues its admin assets (scripts and styles) via the `elementor/editor/before_enqueue_scripts` action.
+2. Injects hidden form fields for all SEO metadata into the Elementor editor footer.
+3. Inserts a **Yoast SEO** tab into Elementor's panel navigation bar next to the existing Global tab.
+
+Elementor v3.30.0 and above uses editor v2 by default. The integration detects the Elementor version and adjusts the panel introduction flow accordingly.
+
+## Accessing the Yoast SEO panel
+
+<Steps>
+  <Step title="Open a page or post in Elementor">
+    Navigate to **Pages** (or any supported post type) and click **Edit with Elementor**. The Elementor editor opens.
+  </Step>
+  <Step title="Find the Yoast SEO tab">
+    Look at the top of the left panel. You will see a **Yoast SEO** tab alongside the existing panel tabs (Elements, Global, etc.). Click it.
+  </Step>
+  <Step title="Edit your SEO settings">
+    The Yoast SEO panel opens with the same tabs and fields available in the classic editor: SEO, Readability, Inclusive language, Schema, and Social.
+  </Step>
+  <Step title="Save">
+    Click **Update** in Elementor as normal. Yoast SEO intercepts the save via a dedicated AJAX action (`wpseo_elementor_save`) and persists all SEO metadata alongside your Elementor layout data.
+  </Step>
+</Steps>
+
+## What the panel includes
+
+The Yoast SEO panel inside Elementor exposes the same metadata fields as the standard metabox:
+
+| Section               | Fields                                                   |
+| --------------------- | -------------------------------------------------------- |
+| **SEO**               | Focus keyphrase, SEO title, slug, meta description, Google preview |
+| **Readability**       | Content analysis with traffic-light scoring              |
+| **Inclusive language**| Inclusive language analysis (if enabled)                 |
+| **Schema**            | Page type and article type selectors                     |
+| **Social**            | Open Graph and Twitter card title, description, image    |
+| **Advanced**          | Robots meta, canonical URL, breadcrumb title (requires `wpseo_edit_advanced_metadata` capability) |
+
+<Note>
+  The social fields are only shown when Open Graph or Twitter card output is enabled in **Yoast SEO → Settings → Site features**.
+</Note>
+
+## Real-time SEO analysis
+
+The SEO and readability analyses run in a background web worker, the same worker used in the block editor. As you type in Elementor's content canvas, the worker re-analyzes the page content and updates the traffic-light scores in the Yoast SEO panel in real time.
+
+The analysis worker receives:
+
+- The page content extracted from Elementor's data structures.
+- Replacement variable values (site name, post title, date, custom fields, custom taxonomies, etc.) resolved server-side on load.
+- The page permalink for readability checks.
+
+<Tip>
+  Use the **Focus keyphrase** field to set your target keyword. The SEO analysis checks keyphrase density, presence in the title, meta description, headings, and URL — all updating live as you edit in Elementor.
+</Tip>
+
+## Highlighting support
+
+The content highlighting feature (which marks analysis issues directly in the content) is available in Elementor:
+
+- In **Yoast SEO Free**, highlighting is shown as an upsell.
+- In **Yoast SEO Premium** (version 21.8-RC0 or later), full highlighting is enabled.
+
+## Saving mechanism
+
+Yoast SEO uses a dedicated AJAX endpoint (`wp-admin/admin-ajax.php?action=wpseo_elementor_save`) to save SEO data independently from Elementor's own save flow. The save is protected with a nonce (`wpseo_elementor_save`) and validates:
+
+- Post ID is a positive integer.
+- Current user has `edit_post` capability for the post.
+- Request is not from a switched multisite site.
+
+All metadata is sanitized using the same sanitization routines as the classic metabox.
+
+## Limitations compared to the classic editor
+
+<AccordionGroup>
+  <Accordion title="Slug editing">
+    Slug changes made in the Yoast SEO panel inside Elementor are saved via the Yoast AJAX handler, which calls `wp_insert_post()` to update `post_name`. If Elementor also modifies the slug, a race condition can occur. Edit the slug in only one place to avoid conflicts.
+  </Accordion>
+  <Accordion title="Multisite switched context">
+    The save action explicitly rejects requests made in a switched multisite context (`ms_is_switched()`). This is a WordPress multisite safety measure and is not specific to Elementor.
+  </Accordion>
+  <Accordion title="Elementor Library post type">
+    The `elementor_library` post type (used for Elementor templates and theme builder sections) is excluded from Yoast SEO indexing. These internal Elementor post types do not appear in the indexable table and do not have a Yoast SEO metabox.
+  </Accordion>
+  <Accordion title="Custom post types">
+    The Yoast SEO tab only appears in Elementor for post types where the Yoast metabox is active. Post types excluded from Yoast SEO via `WPSEO_Utils::is_metabox_active()` will not show the panel.
+  </Accordion>
+</AccordionGroup>
+
+## Configuring which post types show the panel
+
+Post type visibility is controlled by the same setting as the classic editor. Go to **Yoast SEO → Settings → Content types**, find the post type you want to configure, and toggle **Show Yoast SEO metabox**. The change applies to both the classic editor and the Elementor panel.
+
+<Warning>
+  Disabling the Yoast SEO metabox for a post type also prevents the Yoast SEO tab from appearing in Elementor for that post type. Any previously saved SEO metadata for those posts is retained in the database but will no longer be editable through the panel.
+</Warning>

@@ -1,0 +1,361 @@
+---
+title: 'Yoast SEO PHP hooks and filters: developer reference'
+description: 'Reference for Yoast SEO WordPress filters: customize titles, meta descriptions, canonical URLs, robots directives, Schema graph output, and breadcrumbs.'
+---
+
+Yoast SEO exposes a set of WordPress filters that let you modify nearly every piece of SEO output it produces — from page titles and meta descriptions through to structured data and breadcrumb trails. Each filter is applied inside the relevant presenter or generator class and receives the computed value plus the current `Indexable_Presentation` object, giving you full context to make conditional changes.
+
+## Meta tags
+
+These filters run inside the individual presenter classes just before the tag is written to the `<head>`.
+
+<AccordionGroup>
+  <Accordion title="wpseo_title">
+    Filters the final SEO title string. Applied in `Title_Presenter::get_title()` after replacement variables have been resolved.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$title` | `string` | The resolved title string. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_title', function( $title, $presentation ) {
+        // Append the current year to every title.
+        return $title . ' ' . gmdate( 'Y' );
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_metadesc">
+    Filters the meta description string. Applied in `Meta_Description_Presenter::get()` after replacement variables have been resolved and before HTML tags are stripped.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$meta_description` | `string` | The resolved description string. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_metadesc', function( $description, $presentation ) {
+        if ( empty( $description ) && $presentation->model->object_type === 'post' ) {
+            return wp_trim_words( get_the_excerpt( $presentation->model->object_id ), 25 );
+        }
+        return $description;
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_canonical">
+    Filters the canonical URL. Applied in `Canonical_Presenter::get()`. The filter is skipped entirely when the page has a `noindex` robots directive.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$canonical` | `string` | The canonical URL. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_canonical', function( $canonical, $presentation ) {
+        // Force HTTPS on every canonical URL.
+        return str_replace( 'http://', 'https://', $canonical );
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_robots and wpseo_robots_array">
+    Two filters control the robots meta tag. `wpseo_robots` receives and must return a comma-separated string such as `"index, follow"`. `wpseo_robots_array` operates on the key-value array representation and runs after `wpseo_robots`. Both are applied inside `Indexable_Presentation::filter_robots()`.
+
+    **`wpseo_robots` parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$robots` | `string` | Comma-separated robots directives, e.g. `"index, follow"`. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string` or `false` (returning `false` forces `noindex, nofollow`)
+
+    ```php
+    add_filter( 'wpseo_robots', function( $robots, $presentation ) {
+        // Prevent indexing of posts in a specific category.
+        if ( $presentation->model->object_type === 'post' ) {
+            $post_id = $presentation->model->object_id;
+            if ( has_category( 'private', $post_id ) ) {
+                return 'noindex, nofollow';
+            }
+        }
+        return $robots;
+    }, 10, 2 );
+    ```
+
+    **`wpseo_robots_array` parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$robots` | `array` | Associative array of directive key → value pairs. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `array`
+
+    ```php
+    add_filter( 'wpseo_robots_array', function( $robots, $presentation ) {
+        // Add max-snippet directive to all pages.
+        $robots['max-snippet'] = 'max-snippet:150';
+        return $robots;
+    }, 10, 2 );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Open Graph
+
+<AccordionGroup>
+  <Accordion title="wpseo_opengraph_image">
+    Filters the URL of each Open Graph image. Applied inside `Open_Graph\Image_Presenter::filter()` once per image in the `open_graph_images` array.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$image_url` | `string` | The image URL. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_opengraph_image', function( $image_url, $presentation ) {
+        // Replace images from staging with production URLs.
+        return str_replace( 'staging.example.com', 'example.com', $image_url );
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_opengraph_title">
+    Filters the `og:title` value. Applied in `Open_Graph\Title_Presenter::get()`.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$og_title` | `string` | The Open Graph title. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_opengraph_title', function( $og_title, $presentation ) {
+        return $og_title . ' | My Brand';
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_opengraph_desc">
+    Filters the `og:description` value. Applied in `Open_Graph\Description_Presenter::get()`.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$description` | `string` | The Open Graph description. |
+    | `$presentation` | `Indexable_Presentation` | Full presentation object for the current page. |
+
+    **Return type:** `string`
+
+    ```php
+    add_filter( 'wpseo_opengraph_desc', function( $description, $presentation ) {
+        // Ensure OG description is never empty.
+        if ( empty( $description ) ) {
+            return get_bloginfo( 'description' );
+        }
+        return $description;
+    }, 10, 2 );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Schema
+
+Yoast SEO generates a `@graph` array of Schema.org pieces. Two main filter patterns apply.
+
+<AccordionGroup>
+  <Accordion title="wpseo_schema_<identifier>">
+    Filters the data array for an individual graph piece. The identifier corresponds to the lowercase class name under `Yoast\WP\SEO\Generators\Schema\`, for example `article`, `webpage`, `breadcrumb`, `organization`, `person`, `image`, `searchaction`, `sitelinksearchbox`.
+
+    Applied in `Schema_Generator::generate_graph()`.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$graph_piece` | `array` | The Schema.org data array for this piece. |
+    | `$context` | `Meta_Tags_Context` | Context object for the current page. |
+    | `$graph_piece_generator` | `Abstract_Schema_Piece` | The generator instance. |
+    | `$graph_piece_generators` | `Abstract_Schema_Piece[]` | All generator instances. |
+
+    **Return type:** `array` or `false` (returning `false` removes the piece)
+
+    ```php
+    // Add a custom property to every Article piece.
+    add_filter( 'wpseo_schema_article', function( $data, $context ) {
+        $data['articleSection'] = implode(
+            ', ',
+            wp_get_post_categories( $context->post->ID, [ 'fields' => 'names' ] )
+        );
+        return $data;
+    }, 10, 2 );
+    ```
+
+    ```php
+    // Modify the WebPage piece to add a speakable section.
+    add_filter( 'wpseo_schema_webpage', function( $data, $context ) {
+        $data['speakable'] = [
+            '@type'   => 'SpeakableSpecification',
+            'cssSelector' => [ '.article-title', '.article-intro' ],
+        ];
+        return $data;
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_schema_graph">
+    Filters the entire assembled `@graph` array after all pieces have been generated. Useful for adding entirely new graph pieces or reordering the existing ones.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$graph` | `array` | The complete Schema.org `@graph` array. |
+    | `$context` | `Meta_Tags_Context` | Context object for the current page. |
+
+    **Return type:** `array`
+
+    ```php
+    add_filter( 'wpseo_schema_graph', function( $graph, $context ) {
+        // Append a custom FAQPage piece when the post has FAQ blocks.
+        if ( has_block( 'yoast/faq-block', $context->post ) ) {
+            $graph[] = [
+                '@type' => 'FAQPage',
+                '@id'   => $context->canonical . '#faqpage',
+            ];
+        }
+        return $graph;
+    }, 10, 2 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_schema_needs_<identifier>">
+    Controls whether a graph piece is included at all. Return `false` to suppress a piece without having to handle its data.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$is_needed` | `bool` | Whether the piece should be generated. |
+
+    **Return type:** `bool`
+
+    ```php
+    // Suppress the BreadcrumbList piece on the home page.
+    add_filter( 'wpseo_schema_needs_breadcrumb', function( $is_needed ) {
+        return is_front_page() ? false : $is_needed;
+    } );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Breadcrumbs
+
+<AccordionGroup>
+  <Accordion title="wpseo_breadcrumb_links">
+    Filters the complete breadcrumb links array just before it is rendered. Applied in `Breadcrumbs_Generator`. Each element is an associative array with at minimum a `text` key and optionally a `url` key.
+
+    <Warning>
+      The filter must return a multi-dimensional array. Returning a flat array or a non-array value triggers a `_doing_it_wrong()` notice.
+    </Warning>
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$crumbs` | `array` | Array of breadcrumb items, each containing `text` and optionally `url`. |
+
+    **Return type:** `array`
+
+    ```php
+    add_filter( 'wpseo_breadcrumb_links', function( $crumbs ) {
+        // Insert a custom "Blog" crumb before the final post crumb.
+        $blog_crumb = [
+            'text' => 'Blog',
+            'url'  => home_url( '/blog/' ),
+        ];
+        array_splice( $crumbs, count( $crumbs ) - 1, 0, [ $blog_crumb ] );
+        return $crumbs;
+    } );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_breadcrumb_indexables">
+    Filters the indexables array used to build breadcrumb items, before they are converted into crumb arrays. Gives you access to the raw `Indexable` objects for more granular control.
+
+    **Parameters**
+
+    | Parameter | Type | Description |
+    |---|---|---|
+    | `$indexables` | `Indexable[]` | Ordered array of indexable objects forming the trail. |
+    | `$context` | `Meta_Tags_Context` | Context object for the current page. |
+
+    **Return type:** `Indexable[]`
+
+    ```php
+    add_filter( 'wpseo_breadcrumb_indexables', function( $indexables, $context ) {
+        // Remove the direct parent from the trail for a custom taxonomy.
+        if ( $context->indexable->object_sub_type === 'product' ) {
+            array_splice( $indexables, -2, 1 );
+        }
+        return $indexables;
+    }, 10, 2 );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Sitemaps
+
+<Note>
+  Sitemap filters are registered in the classic `WPSEO_Sitemaps` class rather than the newer presenter architecture. The filter names below follow the `wpseo_sitemap_*` convention.
+</Note>
+
+<AccordionGroup>
+  <Accordion title="wpseo_sitemap_entry">
+    Filters a single sitemap entry array before it is written to XML. Return `false` to exclude the entry entirely.
+
+    ```php
+    add_filter( 'wpseo_sitemap_entry', function( $url, $type, $object ) {
+        // Exclude pages modified more than two years ago.
+        if ( isset( $url['mod'] ) && strtotime( $url['mod'] ) < strtotime( '-2 years' ) ) {
+            return false;
+        }
+        return $url;
+    }, 10, 3 );
+    ```
+  </Accordion>
+
+  <Accordion title="wpseo_sitemap_post_types">
+    Filters the list of public post types included in the sitemap.
+
+    ```php
+    add_filter( 'wpseo_sitemap_post_types', function( $post_types ) {
+        // Remove 'attachment' post type from the sitemap.
+        return array_diff( $post_types, [ 'attachment' ] );
+    } );
+    ```
+  </Accordion>
+</AccordionGroup>

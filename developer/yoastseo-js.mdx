@@ -1,0 +1,167 @@
+---
+title: 'YoastSEO.js: text analysis library for JavaScript'
+description: 'Install and use the yoastseo npm package for SEO and readability analysis. Covers Web Worker and direct usage modes, public exports, and language support.'
+---
+
+The `yoastseo` package is a text analysis and SEO assessment library written in JavaScript. It generates metrics about a text and runs assessments against those metrics to produce actionable feedback for improving content quality and search engine visibility. The library powers the Yoast SEO plugin for WordPress and can be embedded in any JavaScript application or CMS.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install yoastseo
+```
+
+```bash yarn
+yarn add yoastseo
+```
+
+</CodeGroup>
+
+## Usage modes
+
+You can use `yoastseo` in two ways: through the **Web Worker API** (recommended for browser environments) or by **using the internal components directly** for server-side or simpler setups.
+
+<Tabs>
+  <Tab title="Web Worker API">
+    Because a web worker must be a separate script in the browser, you first need to create a script to run inside the worker:
+
+    ```javascript worker.js
+    import { AnalysisWebWorker } from "yoastseo";
+    import EnglishResearcher from "yoastseo/build/languageProcessing/languages/en/Researcher";
+
+    const worker = new AnalysisWebWorker( self, new EnglishResearcher() );
+    // Any custom registration should be done here (or send messages via postMessage to the wrapper).
+    worker.register();
+    ```
+
+    Then, in a separate script, create a wrapper that communicates with the worker:
+
+    ```javascript main.js
+    import { AnalysisWorkerWrapper, Paper } from "yoastseo";
+
+    // `url` needs to be the full URL to the script for the browser to know where to load the worker script from.
+    // This should be the script created by the previous code-snippet.
+    const url = "https://my-site-url.com/path-to-webworker-script.js"
+
+    const worker = new AnalysisWorkerWrapper( new Worker( url ) );
+
+    worker.initialize( {
+        logLevel: "TRACE", // Optional, see https://github.com/pimterry/loglevel#documentation
+    } ).then( () => {
+        // The worker has been configured, we can now analyze a Paper.
+        const paper = new Paper( "Text to analyze", {
+            keyword: "analyze",
+        } );
+
+        return worker.analyze( paper );
+    } ).then( ( results ) => {
+        console.log( 'Analysis results:' );
+        console.log( results );
+    } ).catch( ( error ) => {
+        console.error( 'An error occurred while analyzing the text:' );
+        console.error( error );
+    } );
+    ```
+
+    <Tip>
+      Running analysis in a Web Worker keeps the main thread free and prevents UI freezing on large documents. This is the recommended approach for browser-based integrations.
+    </Tip>
+  </Tab>
+  <Tab title="Direct usage">
+    If you are in an environment without Web Worker access (for example, Node.js or a server-side renderer), you can use the internal objects directly:
+
+    ```javascript
+    import { AbstractResearcher, Paper } from "yoastseo";
+
+    const paper = new Paper( "Text to analyze", {
+        keyword: "analyze",
+    } );
+    const researcher = new AbstractResearcher( paper );
+
+    console.log( researcher.getResearch( "wordCountInText" ) );
+    ```
+  </Tab>
+</Tabs>
+
+## Public exports
+
+The following named exports are available from the `yoastseo` package:
+
+<AccordionGroup>
+  <Accordion title="Core classes">
+    | Export | Description |
+    |--------|-------------|
+    | `App` | Top-level application class used by the WordPress plugin. |
+    | `Assessor` | Base assessor class. Extend this to create a custom assessor. |
+    | `ContentAssessor` | Assessor for readability analysis. |
+    | `SeoAssessor` | Assessor for SEO analysis. |
+    | `TaxonomyAssessor` | Assessor tailored for taxonomy/term pages. |
+    | `Pluggable` | Plugin system that allows third-party extensions to modify data and add assessments. |
+  </Accordion>
+  <Accordion title="Value objects">
+    | Export | Description |
+    |--------|-------------|
+    | `Paper` | Immutable value object containing the text and metadata to analyze. |
+    | `AssessmentResult` | Value object representing the outcome of a single assessment (score, feedback text, marks). |
+    | `Assessment` | Base class for individual assessment units. |
+  </Accordion>
+  <Accordion title="Worker utilities">
+    | Export | Description |
+    |--------|-------------|
+    | `AnalysisWebWorker` | Runs inside a Web Worker; receives messages from the wrapper and runs analysis. |
+    | `AnalysisWorkerWrapper` | Runs on the main thread; sends messages to `AnalysisWebWorker` and resolves promises. |
+    | `createWorker` | Helper to instantiate a worker from a URL. |
+  </Accordion>
+</AccordionGroup>
+
+## Supported languages
+
+### SEO analysis
+
+**Function word support** — used for internal linking, insights, and keyphrase-related analysis — is available in:
+
+English, German, Dutch, French, Spanish, Italian, Portuguese, Russian, Polish, Swedish, Hungarian, Indonesian, Arabic, Hebrew, Farsi, Turkish, Norwegian, Czech, Slovak, Greek, Japanese
+
+### Readability analysis
+
+| Language | Transition words | Flesch reading ease | Passive voice | Sentence beginnings | Sentence length |
+|----------|:---:|:---:|:---:|:---:|:---:|
+| English | ✅ | ✅ | ✅ | ✅ | ✅ |
+| German | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Dutch | ✅ | ✅ | ✅ | ✅ | ✅ |
+| French | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Spanish | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Italian | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Portuguese | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Russian | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Catalan | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Polish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Swedish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Hungarian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Indonesian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Arabic | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Hebrew | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Farsi | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Turkish | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Norwegian | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Czech | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Slovak | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Greek | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Japanese | ✅ | ❌ | ❌ | ✅ | ✅ |
+
+<Note>
+  The Flesch reading ease formula does not exist for most non-Western languages. The passive voice check for Japanese is omitted because passive, honorific, and potential verb forms are indistinguishable without contextual information.
+</Note>
+
+The following readability assessments are available for **all** supported languages regardless of the table above:
+
+- Sentence length (default upper limit: 20 words)
+- Paragraph length
+- Subheading distribution
+- Text presence
+
+### Inclusive language analysis
+
+The inclusive language analysis is currently available in **English** only.

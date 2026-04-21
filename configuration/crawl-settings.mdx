@@ -1,0 +1,284 @@
+---
+title: 'Crawl settings and optimization in Yoast SEO'
+description: 'Reduce crawl waste by removing RSS feed links, shortlinks, REST API discovery tags, emoji scripts, and other unused resources with Yoast SEO crawl settings.'
+---
+
+Crawl optimization settings in Yoast SEO let you remove links, feeds, and HTTP headers that WordPress outputs by default but that most sites do not need. Search engine crawlers discover URLs through these outputs; removing unused ones reduces the number of requests crawlers make to your site, preserving crawl budget for your actual content.
+
+These settings are found under **SEO > General > Crawl settings** in the WordPress admin (network admin for multisite installations).
+
+<Note>
+  Most crawl settings are available in Yoast SEO Premium. A subset of basic settings is available in the free version. Each setting below is labeled accordingly.
+</Note>
+
+## How crawl optimization works
+
+WordPress automatically outputs several types of links and headers on every page: RSS feed links in `<head>`, a shortlink, REST API discovery links, oEmbed endpoint links, and others. Most visitors and content types on a typical site do not rely on these. Yoast SEO's crawl settings let you toggle each one off individually without modifying theme files or writing custom PHP.
+
+Enabling these removals reduces the volume of URLs crawlers discover and queue, which is particularly beneficial for large sites where crawl budget is a practical constraint.
+
+## Basic crawl settings
+
+These settings remove common `<head>` tags and HTTP headers.
+
+<AccordionGroup>
+  <Accordion title="Shortlinks">
+    **Option key:** `remove_shortlinks`
+
+    Removes the `<link rel="shortlink">` tag that WordPress adds to every page. Shortlinks are compressed URLs (e.g., `/?p=123`) that serve as an alias for the canonical URL. Crawlers that follow shortlinks consume crawl budget on redirect chains.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="REST API links">
+    **Option key:** `remove_rest_api_links`
+
+    Removes the `<link rel="https://api.w.org/">` discovery link from `<head>` and the `Link:` HTTP header. These links advertise the REST API endpoint. Removing them reduces crawler discovery of API routes that are not meant to be indexed.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="RSD / WLW links">
+    **Option key:** `remove_rsd_wlw_links`
+
+    Removes the Really Simple Discovery (RSD) and Windows Live Writer (WLW) manifest links. These are legacy publishing protocol endpoints that are not used by modern editors.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="oEmbed links">
+    **Option key:** `remove_oembed_links`
+
+    Removes the `<link rel="alternate" type="application/json+oembed">` discovery tag. oEmbed links let external services embed your content. If you do not need external sites to embed your content using the WordPress oEmbed endpoint, removing this avoids exposing the endpoint to crawlers.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Generator tag">
+    **Option key:** `remove_generator`
+
+    Removes the `<meta name="generator" content="WordPress X.X.X">` tag. This tag advertises your WordPress version, which is considered a minor security concern. It provides no SEO benefit.
+
+    **Free or Premium:** Free
+  </Accordion>
+
+  <Accordion title="Pingback HTTP header">
+    **Option key:** `remove_pingback_header`
+
+    Removes the `X-Pingback:` HTTP response header. Pingback headers can be exploited in DDoS amplification attacks and have no SEO value.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Powered by HTTP header">
+    **Option key:** `remove_powered_by_header`
+
+    Removes the `X-Powered-By:` header, which may reveal information about your server configuration (PHP version, etc.).
+
+    **Free or Premium:** Premium
+  </Accordion>
+</AccordionGroup>
+
+## Feed crawl settings
+
+RSS feeds create additional crawlable URLs. For most sites, only the global feed is meaningful; the rest generate thin or duplicate content.
+
+<AccordionGroup>
+  <Accordion title="Global feed">
+    **Option key:** `remove_feed_global`
+
+    Removes the site-wide RSS feed (`/feed/`). If you do not have subscribers or a use case for RSS, removing this eliminates the global feed from crawler discovery.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Global comment feeds">
+    **Option key:** `remove_feed_global_comments`
+
+    Removes the global comments feed (`/comments/feed/`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Post comments feeds">
+    **Option key:** `remove_feed_post_comments`
+
+    Removes the per-post comment feeds (`/post-slug/feed/`). These are separate feeds for comments on individual posts.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Post authors feeds">
+    **Option key:** `remove_feed_authors`
+
+    Removes author archive feeds (e.g., `/author/username/feed/`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Post type feeds">
+    **Option key:** `remove_feed_post_types`
+
+    Removes feeds for custom post type archives (e.g., `/cpt-name/feed/`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Category feeds">
+    **Option key:** `remove_feed_categories`
+
+    Removes per-category feeds (e.g., `/category/news/feed/`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Tag feeds">
+    **Option key:** `remove_feed_tags`
+
+    Removes per-tag feeds (e.g., `/tag/wordpress/feed/`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Custom taxonomy feeds">
+    **Option key:** `remove_feed_custom_taxonomies`
+
+    Removes feeds for custom taxonomy term archives.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Search results feeds">
+    **Option key:** `remove_feed_search`
+
+    Removes the search results feed (`/?s=query&feed=rss2`).
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Atom/RDF feeds">
+    **Option key:** `remove_atom_rdf_feeds`
+
+    Removes the Atom and RDF feed endpoints (alternate feed formats that WordPress outputs alongside RSS 2.0).
+
+    **Free or Premium:** Premium
+  </Accordion>
+</AccordionGroup>
+
+## Unused resources
+
+<AccordionGroup>
+  <Accordion title="Emoji scripts">
+    **Option key:** `remove_emoji_scripts`
+
+    Removes the WordPress emoji detection script and stylesheet that WordPress loads on every page. If your site uses native OS emoji rendering or a custom emoji solution, disabling this removes a small network request on every page load.
+
+    **Free or Premium:** Free
+  </Accordion>
+
+  <Accordion title="Prevent crawling of /wp-json/">
+    **Option key:** `deny_wp_json_crawling`
+
+    Adds a `Disallow: /wp-json/` rule to your robots.txt output, preventing search engine crawlers from indexing REST API endpoints. This does not disable the REST API — it only prevents crawlers from following those URLs.
+
+    <Note>This setting is not available on multisite sub-sites. It can only be enabled on the main site or a single site installation.</Note>
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Prevent Google AdsBot from crawling">
+    **Option key:** `deny_adsbot_crawling`
+
+    Adds a specific `Disallow` rule for the `AdsBot-Google` user agent. Google AdsBot crawls landing pages used in Google Ads campaigns. Blocking it prevents it from consuming crawl budget on pages that are not part of active ad campaigns.
+
+    <Note>This setting is not available on multisite sub-sites.</Note>
+
+    **Free or Premium:** Premium
+  </Accordion>
+</AccordionGroup>
+
+## Search cleanup settings
+
+These settings reduce crawler access to site search URLs, which often produce thin or duplicate content.
+
+<AccordionGroup>
+  <Accordion title="Filter search terms">
+    **Option key:** `search_cleanup`
+
+    Enables the search cleanup feature. This parent toggle must be on for the sub-settings below to take effect.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Filter searches with emojis and special characters">
+    **Option key:** `search_cleanup_emoji`
+
+    Redirects or blocks search queries that contain emoji or other non-standard characters. These queries rarely represent real user intent and often come from bots.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Filter searches with common spam patterns">
+    **Option key:** `search_cleanup_patterns`
+
+    Redirects or blocks search queries matching known spam patterns.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Prevent crawling of search URLs">
+    **Option key:** `deny_search_crawling`
+
+    Adds a `Disallow` rule in robots.txt for site search URLs, preventing crawlers from indexing search result pages.
+
+    <Note>This setting is not available on multisite sub-sites.</Note>
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Redirect pretty search URLs to raw format">
+    **Option key:** `redirect_search_pretty_urls`
+
+    Redirects pretty-formatted search URLs (e.g., `/search/query/`) to the raw query string format (`/?s=query`). This consolidates search URLs to a single canonical format.
+
+    **Free or Premium:** Premium
+  </Accordion>
+</AccordionGroup>
+
+## Permalink cleanup settings
+
+<Warning>
+  Permalink cleanup settings are expert-level features. Removing URL parameters can break tracking, pagination, or third-party integrations. Read the documentation for each setting carefully before enabling it, and test on a staging environment first.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Campaign tracking URL parameters">
+    **Option key:** `clean_campaign_tracking_urls`
+
+    Removes UTM and other campaign tracking parameters from internal links. This prevents search engines from treating URLs with tracking parameters as separate pages.
+
+    This setting is disabled when pretty permalinks are not active.
+
+    **Free or Premium:** Premium
+  </Accordion>
+
+  <Accordion title="Unregistered URL parameters">
+    **Option key:** `clean_permalinks`
+
+    Redirects URLs containing unregistered query string parameters to the clean URL. This prevents parameter-based URL variations from being indexed as separate pages.
+
+    This setting is disabled when pretty permalinks are not active.
+
+    **Free or Premium:** Premium
+  </Accordion>
+</AccordionGroup>
+
+## Crawl budget: why it matters
+
+Search engines allocate a finite crawl budget to each site — a limit on how many pages they will crawl within a given time period. On large sites, crawlers may not reach all your important content if they spend time on low-value URLs.
+
+Removing unused feeds, links, and embeds directly reduces the pool of URLs a crawler can discover from your pages. Combined with a well-structured sitemap and proper use of `noindex` on thin content, crawl settings help ensure crawlers spend their budget on the pages that matter.
+
+<Tip>
+  Start by enabling the **Generator tag** removal (free) and **Emoji scripts** removal (free). These have no downsides for most sites. Evaluate each Premium setting against your site's specific use of feeds, REST API, and search before enabling it.
+</Tip>

@@ -1,0 +1,124 @@
+---
+title: 'How to install Yoast SEO on your WordPress website'
+description: 'Step-by-step instructions for installing and activating Yoast SEO via the WordPress admin, FTP, or a development clone, including first-time configuration.'
+---
+
+This page explains how to install Yoast SEO on a WordPress site. It covers the WordPress admin method, manual FTP upload, and a source checkout for local development. After installation, the first-time configuration wizard walks you through the settings that have the most impact on how search engines understand your site.
+
+## System requirements
+
+Before you install, confirm your environment meets these minimums:
+
+| Requirement | Minimum version |
+|---|---|
+| WordPress | 6.8 (`YOAST_SEO_WP_REQUIRED`) |
+| PHP | 7.4 (`YOAST_SEO_PHP_REQUIRED`) |
+
+You can check your PHP version in **WordPress admin → Tools → Site Health → Info → Server**.
+
+<Warning>
+  Installing Yoast SEO on a WordPress version below 6.8 or a PHP version below 7.4 will trigger an admin notice and the plugin will deactivate itself automatically.
+</Warning>
+
+## Install via WordPress admin
+
+This is the recommended method for production sites.
+
+<Steps>
+  <Step title="Open the Add Plugins screen">
+    Log in to your WordPress admin, then go to **Plugins → Add New Plugin**.
+  </Step>
+  <Step title="Search for Yoast SEO">
+    Type `Yoast SEO` in the search field. The plugin by Team Yoast (over 10 million active installs) will appear at the top of the results.
+  </Step>
+  <Step title="Install and activate">
+    Click **Install Now** next to Yoast SEO, then click **Activate** when the button changes.
+
+    After activation, WordPress redirects you to the Plugins list. A notice at the top of the screen invites you to run the first-time configuration.
+  </Step>
+  <Step title="Run the first-time configuration wizard">
+    Navigate to **SEO → General** and click the **First-time configuration** tab. The wizard guides you through five steps:
+
+    1. **SEO data optimization** — indexes your posts, pages, terms, and archives into Yoast's indexables table for faster analysis.
+    2. **Site representation** — tell Yoast whether your site represents an organization or a person, and upload a logo.
+    3. **Social profiles** — add your organization's Facebook URL, X (Twitter) username, and other social profile URLs so Yoast can populate the Knowledge Graph.
+    4. **Personal preferences** — opt in or out of anonymous usage tracking.
+    5. **Finish** — the wizard marks completed steps in `configuration_finished_steps` and activates the full feature set.
+
+    <Tip>
+      You can return to any step by clicking its heading in the wizard sidebar. Completed steps are saved individually, so restarting the wizard does not reset earlier choices.
+    </Tip>
+  </Step>
+  <Step title="Configure basic settings">
+    After the wizard, review the following settings in **SEO → General → Features**:
+
+    - **XML sitemaps** — enabled by default; confirm it is on and submit your sitemap URL to Google Search Console.
+    - **SEO analysis** and **Readability analysis** — both enabled by default; leave them on unless you have a specific reason to disable them.
+    - **Schema** — controls your site's structured data output; leave the site representation you chose in the wizard.
+  </Step>
+</Steps>
+
+## Install manually via FTP
+
+Use this method if your host restricts outbound connections from the WordPress admin.
+
+<Steps>
+  <Step title="Download the plugin ZIP">
+    Go to [wordpress.org/plugins/wordpress-seo](https://wordpress.org/plugins/wordpress-seo/) and click **Download**. You will receive a file named `wordpress-seo.zip`.
+  </Step>
+  <Step title="Upload and extract">
+    Connect to your server with an FTP client (FileZilla, Cyberduck, etc.) and upload `wordpress-seo.zip` to `wp-content/plugins/`. Extract the ZIP so that the plugin files live at `wp-content/plugins/wordpress-seo/`.
+  </Step>
+  <Step title="Activate from WordPress admin">
+    Go to **Plugins → Installed Plugins**, find Yoast SEO, and click **Activate**. Then follow the first-time configuration steps above.
+  </Step>
+</Steps>
+
+## Development setup (from source)
+
+<Note>
+  This method produces a development build that is not suitable for production. Use it only for contributing to the plugin or testing against unreleased changes.
+</Note>
+
+The plugin's source is hosted at [github.com/Yoast/wordpress-seo](https://github.com/Yoast/wordpress-seo). You will need [Composer](https://getcomposer.org/), [Yarn](https://yarnpkg.com/), and [Grunt](https://gruntjs.com/) installed before you start.
+
+From the `wp-content/plugins/` directory of a local WordPress install:
+
+```bash
+git clone https://github.com/Yoast/wordpress-seo.git
+cd wordpress-seo
+composer install
+yarn
+grunt build
+```
+
+For a faster iteration loop during development, use `grunt build:dev` instead of `grunt build` to skip production-only dependencies. To rebuild only JavaScript or CSS after making changes:
+
+```bash
+# Rebuild JavaScript
+grunt build:js
+
+# Rebuild CSS
+grunt build:css
+
+# Watch for changes and rebuild automatically
+grunt watch
+```
+
+For JavaScript-only work you can also use the Webpack watcher:
+
+```bash
+yarn start
+```
+
+When working inside a sub-package such as `packages/ui-library`, you can target its watch script from the root:
+
+```bash
+yarn workspace @yoast/ui-library watch:js
+```
+
+After the build completes, activate the plugin in **Plugins → Installed Plugins** as usual.
+
+## Next step
+
+With Yoast SEO installed and configured, follow the [quickstart guide](/quickstart) to optimize your first post end-to-end.

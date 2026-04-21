@@ -1,0 +1,197 @@
+---
+title: 'Assessments and assessors in YoastSEO.js explained'
+description: 'How YoastSEO.js assessments and assessors work: SEO, readability, and inclusive language types, score-to-color mapping, and the AssessmentResult structure.'
+---
+
+An **assessment** is a single analysis unit that evaluates one specific aspect of your content — for example, whether the focus keyphrase appears in the introduction, or whether any sentences are too long. An **assessor** is a collection manager that groups related assessments together, runs them all against a `Paper`, and aggregates the individual scores into an overall score.
+
+## Assessor types
+
+`yoastseo` ships four built-in assessors, each targeting a different analysis goal.
+
+<CardGroup cols={2}>
+  <Card title="SeoAssessor" icon="magnifying-glass">
+    Runs SEO-focused checks: keyphrase presence, meta description quality, image alt tags, internal and outbound links, title width, and more.
+  </Card>
+  <Card title="ContentAssessor" icon="book-open">
+    Runs readability checks: sentence length, paragraph length, passive voice, transition words, subheading distribution, and text presence.
+  </Card>
+  <Card title="TaxonomyAssessor" icon="tag">
+    A variant of `SeoAssessor` tuned for taxonomy/term pages. Uses a lower recommended minimum text length (30 words instead of 300) and omits assessments that are less relevant to archive-style pages.
+  </Card>
+  <Card title="InclusiveLanguageAssessor" icon="people-group">
+    Scans for potentially non-inclusive language. Currently available in English only. Scores 3 for a problem term (red) and 6 for an improvement suggestion (orange).
+  </Card>
+</CardGroup>
+
+### Cornerstone assessors
+
+Cornerstone content is your most important content. Two additional assessors apply **stricter scoring thresholds** for pages that have been marked as cornerstone content:
+
+- **`CornerstoneSEOAssessor`** — extends `SeoAssessor`. Increases the recommended minimum text length to 900 words, tightens the meta description score, requires the keyphrase in image alt texts, and reduces the slug keyword score tolerance.
+- **`CornerstoneContentAssessor`** — extends `ContentAssessor`. Reduces the sentence length threshold (flags sentences with more than 20 words as slightly too many, and more than 25 words as far too many) and applies a stricter subheading distribution limit (250 words per section).
+
+<Tip>
+  All assessors follow the same interface: construct with a `Researcher`, call `assessor.assess(paper)`, then retrieve results with `assessor.getValidResults()`.
+</Tip>
+
+## Using an assessor
+
+```javascript
+import { SeoAssessor, Paper } from "yoastseo";
+import EnglishResearcher from "yoastseo/build/languageProcessing/languages/en/Researcher";
+
+const paper = new Paper( "<p>Learn how to bake sourdough bread at home.</p>", {
+    keyword: "sourdough bread",
+    title: "How to Bake Sourdough Bread at Home",
+    description: "A step-by-step guide to baking sourdough bread at home.",
+    slug: "bake-sourdough-bread",
+    locale: "en_US",
+} );
+
+const researcher = new EnglishResearcher( paper );
+const assessor = new SeoAssessor( researcher );
+
+assessor.assess( paper );
+
+const results = assessor.getValidResults();
+results.forEach( result => {
+    console.log( result.getIdentifier(), result.getScore(), result.getText() );
+} );
+
+console.log( "Overall score:", assessor.calculateOverallScore() );
+```
+
+## SEO assessments
+
+The `SeoAssessor` and `TaxonomyAssessor` include the following assessments, sourced from `src/scoring/assessments/seo/`:
+
+| Assessment | What it checks |
+|-----------|----------------|
+| `IntroductionKeywordAssessment` | Keyphrase presence in the first paragraph. |
+| `KeyphraseLengthAssessment` | Whether the keyphrase is an appropriate length. |
+| `KeywordDensityAssessment` | Keyphrase density — neither too sparse nor too repetitive. |
+| `MetaDescriptionKeywordAssessment` | Keyphrase presence in the meta description. |
+| `MetaDescriptionLengthAssessment` | Meta description character length. |
+| `SubHeadingsKeywordAssessment` | Keyphrase presence in subheadings. |
+| `TextCompetingLinksAssessment` | Checks for links that compete with the focus keyphrase. |
+| `KeyphraseInImageTextAssessment` | Keyphrase in image alt text. |
+| `ImageCountAssessment` | Whether the text contains at least one image. |
+| `TextLengthAssessment` | Total word count of the content. |
+| `OutboundLinksAssessment` | Presence of outbound (external) links. |
+| `KeyphraseInSEOTitleAssessment` | Keyphrase presence and position in the SEO title. |
+| `InternalLinksAssessment` | Presence and quality of internal links. |
+| `PageTitleWidthAssessment` | Rendered pixel width of the SEO title. |
+| `UrlKeywordAssessment` | Keyphrase presence in the URL slug. |
+| `FunctionWordsInKeyphraseAssessment` | Checks whether the keyphrase consists entirely of function words. |
+| `SingleH1Assessment` | Whether there is exactly one H1 in the content. |
+| `ImageAltTagsAssessment` | Whether images have alt text set. |
+| `ProductIdentifiersAssessment` | Product identifier presence (for product pages). |
+| `ProductSKUAssessment` | Product SKU presence (for product pages). |
+| `TextTitleAssessment` | Presence of a visible text heading. |
+| `KeyphraseDistributionAssessment` | Even distribution of the keyphrase throughout the text. |
+
+## Readability assessments
+
+The `ContentAssessor` includes the following assessments, sourced from `src/scoring/assessments/readability/`:
+
+| Assessment | What it checks |
+|-----------|----------------|
+| `SubheadingDistributionTooLongAssessment` | Whether text sections between subheadings are too long. |
+| `ParagraphTooLongAssessment` | Whether individual paragraphs contain too many words. |
+| `SentenceLengthInTextAssessment` | Percentage of sentences that exceed the word-count threshold. |
+| `TransitionWordsAssessment` | Percentage of sentences that use transition words. |
+| `PassiveVoiceAssessment` | Percentage of sentences written in passive voice. |
+| `TextPresenceAssessment` | Whether the content contains any analyzable text. |
+| `SentenceBeginningsAssessment` | Whether consecutive sentences start with the same word. |
+| `ListAssessment` | Use of lists to break up long sections of text. |
+| `WordComplexityAssessment` | Proportion of complex or uncommon words. |
+| `TextAlignmentAssessment` | Whether text uses centered alignment that may reduce readability. |
+
+## Score interpretation
+
+Each individual assessment produces a score from **0 to 9**. The base `Assessor` class maps these to a 0–100 percentage for the overall score.
+
+| Score (0–9) | Rating | Indicator color |
+|:-----------:|--------|:---------------:|
+| 0 | No result | Gray |
+| 1–4 | Bad | Red |
+| 5–7 | Needs improvement | Orange |
+| 8–9 | Good | Green |
+
+`ContentAssessor` uses a **penalty point** model instead of a straight average. Each bad or orange individual result adds penalty points, and the overall score is determined by how many penalty points have accumulated:
+
+- **Fully supported language** (all 7 readability assessments available): score is red (30) above 6 penalty points, orange (60) above 4, otherwise green (90).
+- **Partially supported language**: score is red (30) above 4 penalty points, orange (60) above 2, otherwise green (90).
+
+`InclusiveLanguageAssessor` uses a different model: any result with score 3 produces an overall red (30); any result with score 6 produces orange (60); otherwise green (90).
+
+## AssessmentResult structure
+
+Each call to `assessor.getValidResults()` returns an array of `AssessmentResult` instances. A valid result has both a score and a feedback text.
+
+```javascript
+const result = results[0];
+
+result.getIdentifier();    // e.g. "keyphraseInIntroduction"
+result.getScore();         // number 0–9
+result.getText();          // human-readable feedback string
+result.getMarks();         // array of Mark objects for text highlighting
+result.hasMarks();         // true when marks are available
+result.hasAIFixes();       // true when Yoast AI can suggest fixes
+result.hasBetaBadge();     // true for beta assessments
+```
+
+The `AssessmentResult` can be serialized and restored:
+
+```javascript
+const serialized = result.serialize();
+// {
+//   _parseClass: "AssessmentResult",
+//   identifier: "keyphraseInIntroduction",
+//   score: 9,
+//   text: "The keyphrase appears in the first paragraph...",
+//   marks: [],
+//   _hasBetaBadge: false,
+//   _hasJumps: false,
+//   _hasAIFixes: false,
+//   editFieldName: "",
+//   editFieldAriaLabel: "",
+// }
+
+const restored = AssessmentResult.parse( serialized );
+```
+
+## Adding a custom assessment
+
+You can register additional assessments on any assessor instance using `addAssessment()`:
+
+```javascript
+import { Assessment, AssessmentResult } from "yoastseo";
+
+class WordCountGoalAssessment extends Assessment {
+    getResult( paper, researcher ) {
+        const wordCount = researcher.getResearch( "wordCountInText" );
+        const result = new AssessmentResult();
+
+        if ( wordCount >= 600 ) {
+            result.setScore( 9 );
+            result.setText( `Great — your text has ${wordCount} words.` );
+        } else {
+            result.setScore( 3 );
+            result.setText( `Your text has only ${wordCount} words. Aim for at least 600.` );
+        }
+
+        return result;
+    }
+}
+
+const customAssessment = new WordCountGoalAssessment();
+customAssessment.identifier = "wordCountGoal";
+
+assessor.addAssessment( "wordCountGoal", customAssessment );
+```
+
+<Note>
+  Not all assessments are available in every language. Assessments that call `isApplicable()` returning `false` for a given researcher are silently skipped and do not count toward the overall score.
+</Note>

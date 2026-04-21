@@ -1,0 +1,194 @@
+---
+title: 'Paper: the content input object for YoastSEO.js'
+description: 'Paper bundles text and metadata for YoastSEO.js analysis. Learn its constructor, attributes, immutability rules, and how locale drives language selection.'
+---
+
+A `Paper` is a value object that bundles the text you want to analyze with all the metadata the analysis needs — such as the focus keyphrase, SEO title, meta description, and locale. Every analysis run in `yoastseo` begins with a `Paper`; it is the single source of truth passed to both the `Researcher` and the `Assessor`.
+
+## Constructor
+
+```javascript
+new Paper( text, attributes )
+```
+
+<ParamField path="text" type="string" required>
+  The HTML body content to analyze. The library expects standard HTML that would appear inside a `<body>` element — no `<head>` or `<footer>` elements. An empty string is accepted and will produce a "no content" result.
+</ParamField>
+
+<ParamField path="attributes" type="object">
+  An optional object of metadata properties. All fields are optional and fall back to their defaults when omitted.
+</ParamField>
+
+### Attributes
+
+<AccordionGroup>
+  <Accordion title="keyword">
+    **Type:** `string` — **Default:** `""`
+
+    The focus keyphrase or keyword for the content. The library treats `keyword` and `keyphrase` as equivalent terms; a keyphrase can be a single word (`"SEO"`) or a multi-word phrase (`"WordPress SEO plugin"`). If the value contains only punctuation and no letters, it is reset to the default empty string.
+  </Accordion>
+  <Accordion title="synonyms">
+    **Type:** `string` — **Default:** `""`
+
+    Comma-separated synonyms for the focus keyphrase. Used to allow natural writing and prevent keyword stuffing while still counting keyphrase matches during SEO analysis.
+  </Accordion>
+  <Accordion title="description">
+    **Type:** `string` — **Default:** `""`
+
+    The SEO meta description. Assessed for length and keyphrase presence.
+  </Accordion>
+  <Accordion title="title">
+    **Type:** `string` — **Default:** `""`
+
+    The SEO title tag. Assessed for keyphrase presence and pixel width.
+  </Accordion>
+  <Accordion title="titleWidth">
+    **Type:** `number` — **Default:** `0`
+
+    The rendered width of the SEO title in pixels. Used by the page title width assessment to determine whether the title fits within search engine result snippets.
+  </Accordion>
+  <Accordion title="slug">
+    **Type:** `string` — **Default:** `""`
+
+    The URL slug of the page (without domain or protocol). Assessed for keyphrase presence. Replaces the deprecated `url` attribute.
+  </Accordion>
+  <Accordion title="locale">
+    **Type:** `string` — **Default:** `"en_US"`
+
+    The locale code in `language_REGION` format (for example, `"de_DE"` or `"fr_FR"`). This drives which language-specific researcher is used for morphological analysis, function word lists, transition word lists, and other linguistic features. An empty string is treated as `"en_US"`.
+  </Accordion>
+  <Accordion title="permalink">
+    **Type:** `string` — **Default:** `""`
+
+    The full canonical URL of the page (for example, `"https://example.com/my-page/"`).
+  </Accordion>
+  <Accordion title="date">
+    **Type:** `string` — **Default:** `""`
+
+    The publication or last-modified date of the content.
+  </Accordion>
+  <Accordion title="textTitle">
+    **Type:** `string` — **Default:** `""`
+
+    The visible heading that appears at the top of the content (distinct from the SEO `title`). Used by the text title assessment.
+  </Accordion>
+  <Accordion title="writingDirection">
+    **Type:** `string` — **Default:** `"LTR"`
+
+    Writing direction of the text. Use `"LTR"` for left-to-right languages and `"RTL"` for right-to-left languages such as Arabic, Hebrew, and Farsi.
+  </Accordion>
+  <Accordion title="isFrontPage">
+    **Type:** `boolean` — **Default:** `false`
+
+    Whether the page being analyzed is the site's front page. Some assessments adjust their criteria for front pages.
+  </Accordion>
+  <Accordion title="wpBlocks">
+    **Type:** `Object[]` — **Default:** `[]`
+
+    An array of WordPress block editor blocks encoded as objects. Used when the content originates from the Gutenberg editor.
+  </Accordion>
+  <Accordion title="shortcodes">
+    **Type:** `string[]` — **Default:** `[]`
+
+    An array of shortcode strings present in the text. Shortcodes are stripped before analysis to avoid treating them as content.
+  </Accordion>
+  <Accordion title="customData">
+    **Type:** `object` — **Default:** `{}`
+
+    Arbitrary custom data that plugins or integrations can attach to the Paper and retrieve later via `getCustomData()`.
+  </Accordion>
+</AccordionGroup>
+
+## Example
+
+The following example creates a fully populated Paper:
+
+```javascript
+import { Paper } from "yoastseo";
+
+const paper = new Paper(
+    "<p>This is the <strong>main</strong> content</p>",
+    {
+        keyword: "main content",
+        synonyms: "body text, article text",
+        title: "Understanding Main Content — Example Site",
+        titleWidth: 512,
+        description: "A concise meta description that includes the focus keyphrase.",
+        slug: "understanding-main-content",
+        locale: "en_US",
+        permalink: "https://example.com/understanding-main-content/",
+        date: "2024-01-15",
+        textTitle: "Understanding Main Content",
+        writingDirection: "LTR",
+        isFrontPage: false,
+        customData: { postType: "article" },
+    }
+);
+
+console.log( paper.getKeyword() );     // "main content"
+console.log( paper.getLocale() );      // "en_US"
+console.log( paper.hasDescription() ); // true
+```
+
+## Accessor methods
+
+Every attribute has a corresponding pair of `has*()` and `get*()` methods. These return `false`/empty-string when the attribute was not set.
+
+| Method | Returns |
+|--------|---------|
+| `getText()` | The raw HTML text. |
+| `getKeyword()` | The focus keyphrase. |
+| `getSynonyms()` | The comma-separated synonyms string. |
+| `getTitle()` | The SEO title. |
+| `getTitleWidth()` | The SEO title width in pixels. |
+| `getDescription()` | The meta description. |
+| `getSlug()` | The URL slug. |
+| `getLocale()` | The locale string, e.g. `"en_US"`. |
+| `getPermalink()` | The full canonical URL. |
+| `getDate()` | The date string. |
+| `getTextTitle()` | The visible content heading. |
+| `getWritingDirection()` | `"LTR"` or `"RTL"`. |
+| `isFrontPage()` | `true` when the page is the front page. |
+| `getCustomData()` | The custom data object. |
+
+## Immutability
+
+A `Paper` is immutable after construction. None of the getter methods modify internal state, and there are no public setter methods for attributes. To analyze different content, create a new `Paper` instance.
+
+<Note>
+  The only exception is `setTree()`, which the `Assessor` calls internally to attach the parsed HTML tree. This is an implementation detail and should not be called by consuming code.
+</Note>
+
+You can compare two Paper instances structurally using the `equals()` method:
+
+```javascript
+const a = new Paper( "Hello world", { keyword: "hello" } );
+const b = new Paper( "Hello world", { keyword: "hello" } );
+
+console.log( a.equals( b ) ); // true
+```
+
+## Serialization
+
+Papers can be round-tripped to plain objects for storage or transport:
+
+```javascript
+const serialized = paper.serialize();
+// { _parseClass: "Paper", text: "...", keyword: "...", ... }
+
+const restored = Paper.parse( serialized );
+```
+
+`Paper.parse()` also accepts an existing `Paper` instance and returns it unchanged, making it safe to use without a type check.
+
+## How locale affects analysis
+
+The `locale` attribute determines which language-specific `Researcher` subclass processes the text. Each language researcher overrides the base `AbstractResearcher` with:
+
+- Language-specific **function word lists** (articles, prepositions, conjunctions) that are filtered out of keyphrase matching.
+- **Morphological analysis** to match inflected forms of the keyphrase (e.g., matching "running" when the keyphrase is "run").
+- **Transition word lists** for the transition words readability assessment.
+- **Flesch reading ease** coefficients where a formula exists for that language.
+- **Sentence tokenization** rules suited to the writing system (including special handling for Japanese).
+
+When no language-specific researcher is available for a locale, the `_default` researcher is used, which provides only the language-independent assessments: sentence length, paragraph length, subheading distribution, and text presence.

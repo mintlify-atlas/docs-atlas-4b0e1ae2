@@ -1,0 +1,143 @@
+---
+title: 'Set up and customize breadcrumbs in Yoast SEO'
+description: 'Enable Yoast SEO breadcrumbs, add them to your theme with the yoast_breadcrumb() function, and customize items with the wpseo_breadcrumb_links filter.'
+---
+
+Breadcrumbs are a secondary navigation aid that shows users where they are within your site hierarchy. They appear as a row of links—typically `Home > Category > Post Title`—near the top of a page. For SEO, breadcrumbs matter because Yoast SEO outputs them as `BreadcrumbList` structured data (Schema.org), which Google uses to display a cleaner URL path in search results instead of the raw URL.
+
+## Enabling breadcrumbs
+
+<Steps>
+  <Step title="Open Yoast SEO settings">
+    In the WordPress admin, go to **SEO > Search Appearance** and click the **Breadcrumbs** tab.
+  </Step>
+  <Step title="Enable the breadcrumbs feature">
+    Toggle **Enable breadcrumbs for your theme** to on. This activates the `yoast_breadcrumb()` PHP function and the `[wpseo_breadcrumb]` shortcode.
+  </Step>
+  <Step title="Configure breadcrumb options">
+    Set your preferred separator, home link text, and other display options (see the settings reference below).
+  </Step>
+  <Step title="Add breadcrumbs to your theme">
+    Insert the breadcrumb output in your theme template files (see the next section).
+  </Step>
+</Steps>
+
+## Adding breadcrumbs to your theme
+
+Once breadcrumbs are enabled, add the following code to your theme template files where you want breadcrumbs to appear. Common locations are `single.php`, `page.php`, `category.php`, and `archive.php`, placed just before or after the page header.
+
+```php
+<?php
+if ( function_exists( 'yoast_breadcrumb' ) ) {
+    yoast_breadcrumb( '<p id="breadcrumbs">', '</p>' );
+}
+?>
+```
+
+The first argument is the HTML wrapper opening tag; the second is the closing tag. You can replace `<p id="breadcrumbs">` with any HTML element that suits your theme layout, such as a `<nav aria-label="Breadcrumb">` for better accessibility.
+
+You can also use the shortcode in post content or widget areas:
+
+```
+[wpseo_breadcrumb]
+```
+
+The shortcode is registered in `Breadcrumbs_Integration::register_hooks()` and delegates rendering to `Breadcrumbs_Presenter`.
+
+## Breadcrumb settings reference
+
+<AccordionGroup>
+  <Accordion title="Separator between breadcrumbs">
+    The separator character displayed between each breadcrumb item. Default is `»`. Any text or HTML entity is accepted, for example `>`, `/`, or `›`.
+  </Accordion>
+
+  <Accordion title="Anchor text for the home page">
+    The label used for the first breadcrumb item that links to the home page. Defaults to `Home`. Set this via the **Breadcrumbs settings** in the Yoast SEO Search Appearance panel.
+
+    This value is stored in the `breadcrumbs-home` option. When set to an empty string, the home breadcrumb is suppressed entirely.
+  </Accordion>
+
+  <Accordion title="Prefix for breadcrumbs">
+    Optional text output before the entire breadcrumb trail. Leave blank if you do not need a prefix label like "You are here:".
+  </Accordion>
+
+  <Accordion title="Prefix for archive breadcrumbs">
+    Text prepended to archive breadcrumb items. For example, if set to `Archives:`, a date archive breadcrumb reads `Archives: January 2024`. This is also used as the prefix for author archive breadcrumbs (e.g., `Author: Jane Smith`), stored in the `breadcrumbs-archiveprefix` option.
+  </Accordion>
+
+  <Accordion title="Prefix for search result breadcrumbs">
+    Text prepended to the search results breadcrumb. Defaults to `You searched for`. The full breadcrumb reads, for example, `You searched for yoast seo`. Stored in the `breadcrumbs-searchprefix` option.
+  </Accordion>
+
+  <Accordion title="Breadcrumb for 404 pages">
+    The text shown as the breadcrumb item on 404 error pages. Defaults to `Error 404: Page not found`. Stored in the `breadcrumbs-404crumb` option.
+  </Accordion>
+
+  <Accordion title="Show current page in breadcrumbs">
+    Controls whether the current page title is included as the last (non-linked) item in the breadcrumb trail. Disabling this shows the breadcrumb trail up to but not including the current page.
+  </Accordion>
+
+  <Accordion title="Show blog page in breadcrumbs">
+    When your site uses a static front page and a dedicated blog page, this setting controls whether the blog page appears as an intermediate breadcrumb item for single posts. Stored in the `breadcrumbs-display-blog-page` option.
+  </Accordion>
+</AccordionGroup>
+
+## How breadcrumbs are generated
+
+Yoast SEO builds the breadcrumb trail from the indexable hierarchy. The `Breadcrumbs_Generator::generate()` method:
+
+1. Resolves static ancestors (home page, blog page, post type archive) based on context
+2. Retrieves all ancestor indexables for the current page using `Indexable_Repository::get_ancestors()`
+3. Appends the current indexable to the chain
+4. Applies the `wpseo_breadcrumb_indexables` filter, then maps each indexable to a crumb array containing `url` and `text`
+5. Applies the `wpseo_breadcrumb_links` filter to the final crumb array
+
+Each crumb is an associative array with at least `url` and `text` keys. Additional keys depend on the object type:
+- Posts add an `id` key
+- Terms add `term_id` and `taxonomy` keys
+- Post type archives add a `ptarchive` key
+
+## Customizing breadcrumbs with filters
+
+### `wpseo_breadcrumb_links`
+
+Use this filter to add, remove, or reorder breadcrumb items after the full trail is built.
+
+```php
+add_filter( 'wpseo_breadcrumb_links', function( $crumbs ) {
+    // Add a custom crumb before the last item.
+    $custom_crumb = [
+        'url'  => 'https://example.com/resources/',
+        'text' => 'Resources',
+    ];
+    array_splice( $crumbs, count( $crumbs ) - 1, 0, [ $custom_crumb ] );
+
+    return $crumbs;
+} );
+```
+
+<Warning>
+  The filter must return a multi-dimensional array. Returning a flat array or a non-array value causes Yoast SEO to log a `_doing_it_wrong` notice and fall back to the unfiltered crumbs.
+</Warning>
+
+### `wpseo_breadcrumb_single_link_info`
+
+Fires for each individual crumb after `wpseo_breadcrumb_links`. Use it to modify a single item without iterating the full array yourself.
+
+```php
+add_filter( 'wpseo_breadcrumb_single_link_info', function( $link_info, $index, $crumbs ) {
+    // Change the text of the first crumb (home).
+    if ( $index === 0 ) {
+        $link_info['text'] = 'Start';
+    }
+    return $link_info;
+}, 10, 3 );
+```
+
+### `wpseo_breadcrumb_indexables`
+
+Fires before the crumb array is built, allowing you to modify the indexable objects used to generate breadcrumbs. The filter receives the array of `Indexable` objects and the current `Meta_Tags_Context`.
+
+## Structured data output
+
+Yoast SEO automatically outputs `BreadcrumbList` schema for each page when breadcrumbs are enabled. This structured data is separate from the visual breadcrumb trail and is output in the `<head>` regardless of whether you call `yoast_breadcrumb()` in your theme. The visual trail and the schema are independent — you need to add the PHP function call to display breadcrumbs visually.

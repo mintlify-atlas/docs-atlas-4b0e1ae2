@@ -1,80 +1,110 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart: optimize your first post with Yoast SEO'
+description: 'Optimize your first WordPress post end-to-end: set a focus keyphrase, review SEO and readability scores, craft a meta description, and verify indexing.'
 ---
 
-## Get started in three steps
+This guide walks you through optimizing a single post or page in Yoast SEO from start to publish. By the end you will have set a focus keyphrase, acted on the SEO and readability analysis, written a compelling meta description, and confirmed your page is being indexed by Google. The Yoast SEO plugin must already be installed and activated before you begin — see [Install Yoast SEO](/installation) if you have not done that yet.
 
-Get your documentation site running locally and make your first customization.
+## Optimize your first post
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Open a post or page in the WordPress editor">
+    Go to **Posts → Add New** (or open an existing draft) in the WordPress admin. Yoast SEO works in both the block editor (Gutenberg) and the classic editor.
+  </Step>
+  <Step title="Scroll to the Yoast SEO metabox">
+    In the block editor, click the **Yoast SEO** tab in the right-hand sidebar. If you are using the classic editor, scroll below the content area to find the Yoast SEO metabox.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    The panel contains three tabs: **SEO**, **Readability**, and **Schema**. You will work through SEO and Readability in the steps that follow.
 
-### Step 2: Deploy your changes
+    <Note>
+      If you do not see the Yoast SEO sidebar tab in the block editor, click the three-dot menu (⋮) in the top-right corner of the editor, go to **Preferences → Panels**, and enable **Yoast SEO**.
+    </Note>
+  </Step>
+  <Step title="Set your focus keyphrase">
+    In the **SEO** tab, find the **Focus keyphrase** field and type the search term you want this post to rank for. Choose a specific phrase (for example, `homemade sourdough bread` rather than just `bread`).
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    As soon as you enter the keyphrase, Yoast SEO analyses your content and populates the bullet list below with results for each check.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Tip>
+      Use a keyphrase that matches exactly how your audience searches. Tools like Google Search Console, Ahrefs, or Google's autocomplete can help you validate search volume before you commit.
+    </Tip>
+  </Step>
+  <Step title="Review the SEO analysis scores">
+    The SEO analysis section shows a list of checks, each preceded by a colored bullet:
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    - **Green** — the check passes; no action needed.
+    - **Orange** — the check has room for improvement.
+    - **Red** — the check fails and should be fixed before publishing.
 
-### Step 3: Go live
+    Common checks include:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    | Check | What it looks for |
+    |---|---|
+    | Keyphrase in title | Your focus keyphrase appears in the SEO title |
+    | Keyphrase in introduction | The keyphrase appears in the first paragraph |
+    | Keyphrase density | The keyphrase appears often enough, but not excessively |
+    | Outbound links | The post links to at least one external source |
+    | Internal links | The post links to at least one other page on your site |
+    | Image alt attributes | Images include alt text containing the keyphrase |
+    | Meta description | A meta description is set and contains the keyphrase |
+
+    Work through the orange and red items until as many bullets as possible turn green. You do not need a perfect score — prioritize the checks that affect user experience as well as crawlers.
+
+    <Warning>
+      Avoid forcing the keyphrase into every sentence just to satisfy a density check. Unnatural repetition can trigger a Google quality penalty. Write for readers first.
+    </Warning>
+  </Step>
+  <Step title="Review the readability analysis">
+    Click the **Readability** tab to see a separate set of checks focused on how easy your content is to understand:
+
+    - **Flesch reading ease** — measures overall reading difficulty on a 0–100 scale; aim for 60 or above for general audiences.
+    - **Passive voice** — flags sentences using passive constructions; keep passive voice below 10% of sentences.
+    - **Sentence length** — highlights sentences over 20 words; break long sentences into shorter ones.
+    - **Paragraph length** — warns when paragraphs exceed 150 words.
+    - **Subheading distribution** — checks that long text sections are broken up with H2 or H3 headings.
+    - **Transition words** — verifies that at least 30% of sentences start with a transition word (however, therefore, in addition, etc.).
+
+    Address the red bullets first, then work through orange ones. A readable post keeps visitors on the page longer, which is a positive signal for search rankings.
+  </Step>
+  <Step title="Set the SEO title and meta description">
+    Return to the **SEO** tab and scroll to the **Google preview** section. This shows how your post will appear in search results.
+
+    **SEO title**: Yoast prefills this with your post title and site name. Edit the title to include your focus keyphrase near the beginning. Keep it between 50 and 60 characters — the progress bar turns green when the length is optimal.
+
+    **Meta description**: Click in the meta description field and write a 130–155 character summary that includes your focus keyphrase and gives searchers a reason to click. The progress bar turns green when the length is within range.
+
+    <Tip>
+      The meta description does not directly influence rankings, but a compelling description improves click-through rate (CTR), which can indirectly boost your position over time.
+    </Tip>
+  </Step>
+  <Step title="Publish and verify in Google Search Console">
+    When the SEO and readability analyses show mostly green bullets, click **Publish** (or **Update** for an existing post).
+
+    To confirm Google has indexed your page:
+
+    1. Open [Google Search Console](https://search.google.com/search-console).
+    2. Paste your post URL into the search bar at the top and press Enter.
+    3. Click **Request Indexing** to ask Google to crawl it immediately.
+    4. Within a few days, the **Coverage** report will show the URL as indexed.
+
+    <Note>
+      If you have not yet submitted your XML sitemap to Google Search Console, go to **Search Console → Sitemaps** and enter `sitemap_index.xml` (the default Yoast sitemap URL). This helps Google discover all your content automatically.
+    </Note>
+  </Step>
+</Steps>
+
+## Mark a post as cornerstone content
+
+Cornerstone content is your most important and comprehensive content — the pages you most want to rank for. Enable the **Cornerstone content** toggle in the **SEO** tab to tell Yoast SEO to apply stricter analysis thresholds to that post. Yoast will also surface cornerstone pages in its internal linking suggestions, encouraging other posts on your site to link back to them.
+
+<Info>
+  Cornerstone content should be long-form, authoritative posts that you update regularly. Avoid marking every post as cornerstone — reserve it for five to ten key pieces that represent the core topics of your site.
+</Info>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Once you have optimized your first post, explore the rest of the Yoast SEO settings:
 
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+- Review the **Schema** tab to control the structured data output for individual posts.
+- Check **SEO → Search Appearance** to set global title templates and choose which post types and taxonomies appear in search results.
+- Use **SEO → Tools → File Editor** to manage your `robots.txt` and `.htaccess` files directly from the admin.

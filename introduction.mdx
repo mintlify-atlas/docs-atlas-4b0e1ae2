@@ -1,0 +1,67 @@
+---
+title: 'Yoast SEO: Optimize your WordPress site for search'
+description: 'Learn what Yoast SEO does, which features it provides for on-page SEO optimization, and how the free and premium editions compare.'
+---
+
+Yoast SEO is a WordPress plugin that helps you optimize your site's content and technical setup for search engines. This page covers what Yoast SEO does, its key features, system requirements, and the difference between the free and premium editions.
+
+## What is Yoast SEO?
+
+Yoast SEO adds an analysis panel to every post, page, and custom post type in the WordPress editor. As you write, the plugin evaluates your content against SEO best practices and readability guidelines, then surfaces actionable feedback through color-coded bullet indicators (green, orange, and red). It also generates the meta tags, XML sitemaps, and structured data (schema.org) that search engines use to understand and index your site.
+
+The plugin ships with a first-time configuration wizard that walks you through the most impactful settings — site representation, social profiles, and the indexing of your content — so you can get a solid baseline in place without touching PHP or editing `wp-config.php`.
+
+## Key features
+
+<Columns cols={2}>
+  <Card title="SEO analysis" icon="magnifying-glass" href="/features/seo-analysis">
+    Real-time keyphrase analysis checks title, meta description, headings, content length, internal links, and more against your focus keyphrase.
+  </Card>
+  <Card title="Readability analysis" icon="book-open" href="/features/readability-analysis">
+    Flesch reading ease, passive voice, sentence length, and transition word checks help you write content that readers and crawlers understand.
+  </Card>
+  <Card title="XML sitemaps" icon="sitemap" href="/features/xml-sitemaps">
+    Automatically generated XML sitemaps for posts, pages, taxonomies, and authors keep search engines up to date with your content.
+  </Card>
+  <Card title="Schema.org structured data" icon="code" href="/features/schema-structured-data">
+    Outputs Article, WebPage, BreadcrumbList, and Organization or Person schema automatically, enabling rich results in Google Search.
+  </Card>
+  <Card title="Open Graph and Twitter Cards" icon="share-nodes" href="/features/social-metadata">
+    Controls the title, description, and image that appear when your content is shared on Facebook, X (Twitter), and other social platforms.
+  </Card>
+  <Card title="Breadcrumb navigation" icon="chevrons-right" href="/configuration/breadcrumbs">
+    Drop-in breadcrumb support via the `yoast_breadcrumb()` template tag, with full schema markup included automatically.
+  </Card>
+</Columns>
+
+## System requirements
+
+| Requirement | Minimum version |
+|---|---|
+| WordPress | 6.8 |
+| PHP | 7.4 |
+
+These values come from the `YOAST_SEO_WP_REQUIRED` and `YOAST_SEO_PHP_REQUIRED` constants defined in `wp-seo-main.php`. Yoast tests against the latest stable WordPress release; running an older version may work but is unsupported.
+
+## Free vs. premium
+
+The free edition, available on [WordPress.org](https://wordpress.org/plugins/wordpress-seo/), covers the full SEO and readability analysis, XML sitemaps, schema output, and the first-time configuration wizard. Most sites can run entirely on the free edition.
+
+Yoast SEO Premium adds:
+
+- **Multiple focus keyphrases** — optimize a single piece of content for up to five related keyphrases.
+- **Internal linking suggestions** — the plugin recommends existing posts to link to while you write.
+- **Redirect manager** — create and manage 301, 302, and other redirects from inside WordPress.
+- **AI-generated title and description suggestions** — draft meta copy from within the editor.
+- **24/7 support** — email and chat support from the Yoast team.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Install Yoast SEO" icon="download" href="/installation">
+    Install from the WordPress plugin directory or manually via FTP, then run the first-time configuration wizard.
+  </Card>
+  <Card title="Optimize your first post" icon="rocket" href="/quickstart">
+    Follow the quickstart guide to optimize a post end-to-end using the Yoast SEO metabox.
+  </Card>
+</Columns>

@@ -1,0 +1,210 @@
+---
+title: 'Third-party plugin integrations in Yoast SEO'
+description: 'How Yoast SEO integrates with AMP, WPML, Jetpack, Web Stories, W3 Total Cache, and bbPress — what each integration does and how to configure it.'
+---
+
+Yoast SEO ships with integrations for a number of widely-used WordPress plugins. Each integration is loaded conditionally — it only activates when the relevant plugin is detected — so there is no performance cost if you are not using a particular plugin. This page documents every supported third-party integration, what it does, and any configuration options available to you.
+
+<CardGroup cols={2}>
+  <Card title="AMP" icon="bolt" href="#amp">
+    Replaces AMP plugin's default meta output with Yoast SEO's own head tags.
+  </Card>
+  <Card title="WPML" icon="globe" href="#wpml">
+    Ensures correct home URL resolution for multilingual hreflang output.
+  </Card>
+  <Card title="Jetpack" icon="zap" href="#jetpack">
+    Prevents duplicate Open Graph tags when both plugins are active.
+  </Card>
+  <Card title="Web Stories" icon="book-open" href="#web-stories">
+    Full SEO metadata support for Google Web Stories.
+  </Card>
+  <Card title="W3 Total Cache" icon="database" href="#w3-total-cache">
+    Flushes the object cache when taxonomy SEO settings change.
+  </Card>
+  <Card title="bbPress" icon="message-square" href="#bbpress">
+    Removes bbPress breadcrumbs when Yoast breadcrumbs are enabled.
+  </Card>
+</CardGroup>
+
+---
+
+## AMP
+
+The [AMP plugin](https://wordpress.org/plugins/amp/) generates Accelerated Mobile Pages and adds its own `<title>`, canonical, and Schema.org metadata to AMP post templates. When Yoast SEO's AMP integration is active, it takes over all of that output so that AMP pages receive the same rich metadata — titles, descriptions, canonical URLs, and structured data — as their canonical counterparts.
+
+**How it works**
+
+The integration hooks into `amp_post_template_head` at priority 0 to remove the AMP plugin's default outputs:
+
+- `amp_post_template_add_title` (title tag)
+- `amp_post_template_add_canonical` (canonical link)
+- `amp_print_schemaorg_metadata` (inline Schema.org JSON-LD)
+
+It then re-adds Yoast SEO's standard front-end head output at priority 9 via `Front_End_Integration::call_wpseo_head()`, which renders all presenters (title, meta description, canonical, Open Graph, Schema, etc.) exactly as on non-AMP pages.
+
+**Conditional**: Active on the front end only (`Front_End_Conditional`). No AMP-specific conditional is needed because the integration hooks fire only when the AMP template is rendering.
+
+<Note>
+  This integration targets the classic AMP plugin template system (`amp_post_template_head`). If you are using the AMP plugin in Standard or Transitional mode with a full-site theme, the AMP pages are rendered through the normal WordPress template and Yoast SEO outputs its head tags through the standard `wp_head` action — no special integration needed.
+</Note>
+
+---
+
+## WPML
+
+[WPML](https://wpml.org/) (WordPress Multilingual Plugin) enables multi-language sites and modifies home URLs to include language path or subdomain prefixes (e.g., `https://example.com/fr/`). This language enrichment conflicts with the unmodified URLs that Yoast SEO needs when building its internal home URL references for hreflang and sitemap generation.
+
+**How it works**
+
+The integration wraps Yoast SEO's `wpseo_home_url` action with a temporary filter on WPML's `wpml_get_home_url` hook:
+
+1. Before Yoast SEO reads the home URL (`wpseo_home_url` action), a filter is added that makes `wpml_get_home_url` return the *original*, language-neutral URL.
+2. After `home_url` is called (priority 100 on the `home_url` filter), that temporary filter is removed so WPML can continue to serve language-enriched URLs to the rest of WordPress.
+
+This ensures that Yoast SEO's canonical URLs, sitemaps, and breadcrumb links are built from the base site URL, while WPML's language switching, hreflang injection, and front-end URL rewriting continue to work normally.
+
+**Conditional**: Active only when WPML is installed and active (`WPML_Conditional`).
+
+<Tip>
+  WPML handles hreflang tag generation on its own side. Yoast SEO's role in a WPML setup is primarily to provide per-language SEO titles, meta descriptions, and structured data. Refer to WPML's own documentation for configuring language-specific SEO metadata.
+</Tip>
+
+---
+
+## Jetpack
+
+[Jetpack](https://jetpack.com/) includes its own Open Graph module that outputs `og:` meta tags. When Yoast SEO's Open Graph output is also enabled, both plugins write Open Graph tags to the page head, producing duplicates that can confuse social media scrapers and result in incorrect link previews.
+
+**How it works**
+
+The integration registers a single filter:
+
+```php
+add_filter( 'jetpack_enable_open_graph', '__return_false' );
+```
+
+This disables Jetpack's Open Graph module, leaving Yoast SEO as the sole source of Open Graph metadata.
+
+**Conditional**: Active on the front end only, and only when both Jetpack is active (`Jetpack_Conditional`) **and** Yoast SEO's Open Graph output is enabled (`Open_Graph_Conditional`). If you have disabled Open Graph in Yoast SEO, this integration does not load and Jetpack's Open Graph module continues to run.
+
+<Warning>
+  If you disable Open Graph in **Yoast SEO → Settings → Site features**, the Jetpack integration will not activate. In that case, Jetpack's Open Graph module will run and produce Open Graph tags — which may or may not be desirable depending on your setup.
+</Warning>
+
+---
+
+## Web Stories
+
+The [Web Stories plugin](https://wordpress.org/plugins/web-stories/) by Google creates visual stories as a `web-story` post type with its own `<head>` rendering pipeline. By default, the plugin outputs its own title, meta description, canonical, Open Graph, Twitter card, and Schema.org metadata. The Yoast SEO integration replaces all of this with Yoast's own metadata pipeline.
+
+**How it works**
+
+The integration disables the Web Stories plugin's native metadata output:
+
+```php
+add_filter( 'web_stories_enable_document_title',    '__return_false' );
+add_filter( 'web_stories_enable_metadata',          '__return_false' );
+add_action( 'web_stories_enable_schemaorg_metadata','__return_false' );
+add_action( 'web_stories_enable_open_graph_metadata','__return_false' );
+add_action( 'web_stories_enable_twitter_metadata',  '__return_false' );
+```
+
+It then hooks Yoast SEO's full front-end head output into `web_stories_story_head` at priority 9, after first removing the native canonical rel (`rel_canonical`).
+
+Additional adjustments for the `web-story` post type:
+
+- **Title presenter**: Ensured to be present in the presenter list even if the theme does not normally include it.
+- **Meta description fallback**: If no explicit meta description is set, the post excerpt is used (`get_the_excerpt()`).
+- **Article schema type**: If the schema article type is `None`, it is overridden to `Article` — Google requires an article type for Web Stories structured data.
+
+A companion integration, `Web_Stories_Post_Edit`, runs in the post editor context and sets the `isWebStoriesIntegrationActive` JavaScript flag so the Yoast metabox UI can adapt its behavior for the web-story editor.
+
+**Conditional**: Active when the Web Stories plugin is active (`Web_Stories_Conditional`).
+
+---
+
+## W3 Total Cache
+
+[W3 Total Cache](https://wordpress.org/plugins/w3-total-cache/) provides object caching for WordPress. When taxonomy SEO settings are saved in Yoast SEO, the cached data can become stale. The integration automatically flushes the W3TC object cache whenever the `wpseo_taxonomy_meta` option is updated.
+
+**How it works**
+
+Two WordPress option hooks trigger a cache flush:
+
+```php
+add_action( 'add_option_wpseo_taxonomy_meta',    'w3tc_objectcache_flush' );
+add_action( 'update_option_wpseo_taxonomy_meta', 'w3tc_objectcache_flush' );
+```
+
+This means any time you save SEO settings for a taxonomy term (title, description, robots), the W3TC object cache is flushed so the next page load picks up the new metadata.
+
+**Conditional**: Active only when W3 Total Cache is installed and active (`W3_Total_Cache_Conditional`).
+
+<Note>
+  This integration flushes the entire W3TC object cache, not just cached entries related to the changed term. On high-traffic sites with many cached objects, this may cause a temporary increase in database queries after taxonomy meta is saved.
+</Note>
+
+---
+
+## bbPress
+
+[bbPress](https://bbpress.org/) is a forum plugin for WordPress. It outputs its own breadcrumb trail via `bbp_get_breadcrumb`. When Yoast SEO breadcrumbs are also active, both breadcrumb trails appear on forum pages, creating duplicate navigation.
+
+**How it works**
+
+When Yoast SEO breadcrumbs are enabled (`breadcrumbs-enable` option is `true`), the integration suppresses the bbPress breadcrumb output:
+
+```php
+add_filter( 'bbp_get_breadcrumb', '__return_false' );
+```
+
+If Yoast SEO breadcrumbs are disabled, this filter is not registered and bbPress breadcrumbs continue to render normally.
+
+**Conditional**: Active on the front end only (`Front_End_Conditional`). The breadcrumb suppression filter is additionally gated by the `breadcrumbs-enable` option check at runtime.
+
+<Tip>
+  To use Yoast SEO breadcrumbs on bbPress forum pages, make sure your theme calls `yoast_breadcrumb()` in the appropriate template location. Some bbPress-compatible themes call `bbp_breadcrumb()` directly; you may need to replace that call in your child theme.
+</Tip>
+
+---
+
+## Common integration patterns
+
+All third-party integrations in Yoast SEO follow the same `Integration_Interface` contract:
+
+```php
+interface Integration_Interface {
+    public static function get_conditionals(): array;
+    public function register_hooks(): void;
+}
+```
+
+- `get_conditionals()` returns an array of conditional class names. All conditions must be met for the integration to load.
+- `register_hooks()` is called only when all conditions are satisfied. This is where WordPress actions and filters are registered.
+
+This pattern means integrations have zero overhead when their dependent plugins are not active — the class is never instantiated and no hooks are registered.
+
+### Checking whether an integration is active
+
+You can check whether a specific integration loaded by inspecting whether its hooks were registered. For example, to check if the Jetpack Open Graph integration is active:
+
+```php
+// Returns false if the Jetpack integration is active (it removes Jetpack's OG output).
+$jetpack_og_enabled = apply_filters( 'jetpack_enable_open_graph', true );
+```
+
+---
+
+## Reporting integration issues
+
+If you encounter a conflict between Yoast SEO and a third-party plugin that is not listed here, report it through one of the following channels:
+
+- **WordPress support forum**: [wordpress.org/support/plugin/wordpress-seo](https://wordpress.org/support/plugin/wordpress-seo) for free version issues.
+- **Yoast support**: Available to Yoast SEO Premium subscribers via the Yoast website.
+- **GitHub**: [github.com/Yoast/wordpress-seo](https://github.com/Yoast/wordpress-seo) for confirmed bugs with reproducible steps.
+
+When reporting, include:
+1. The name and version of the conflicting plugin.
+2. A description of the unexpected behavior.
+3. Steps to reproduce the issue.
+4. Whether the issue persists with all other plugins disabled (to isolate the conflict).

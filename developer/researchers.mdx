@@ -1,0 +1,241 @@
+---
+title: 'Researchers in YoastSEO.js: linguistic analysis API'
+description: 'How YoastSEO.js Researchers analyze a Paper: available research methods, language-specific researcher classes, and registering custom research functions.'
+---
+
+A **Researcher** performs linguistic analysis on a `Paper` and provides the raw data that assessments use to calculate their scores. Where an `Assessor` decides *what* to measure and produces user-facing feedback, the `Researcher` handles the underlying computation — word counting, sentence detection, keyphrase matching, morphological analysis, and more. Results are computed lazily on first access and can be cached for re-use.
+
+## AbstractResearcher
+
+`AbstractResearcher` is the base class for all researchers. It ships with a full set of language-independent default researches and can be extended with custom research functions.
+
+```javascript
+import { AbstractResearcher, Paper } from "yoastseo";
+
+const paper = new Paper( "Text to analyze", {
+    keyword: "analyze",
+} );
+
+const researcher = new AbstractResearcher( paper );
+```
+
+### Key methods
+
+| Method | Description |
+|--------|-------------|
+| `getResearch( name )` | Run a research by name and return its result. Returns `false` if the research does not exist. |
+| `setPaper( paper )` | Swap the `Paper` the researcher operates on without creating a new instance. |
+| `addResearch( name, fn )` | Register a custom research function. |
+| `addResearchData( name, data )` | Inject pre-computed data for a research (useful for server-side data). |
+| `addHelper( name, fn )` | Register a custom helper function that researches can reference. |
+| `addConfig( name, value )` | Register a custom configuration value (e.g., language-specific thresholds). |
+| `hasResearch( name )` | Check whether a named research exists. |
+| `getAvailableResearches()` | Returns the merged object of default and custom researches. |
+| `getData( name )` | Retrieve injected research data by name. |
+| `getConfig( name )` | Retrieve a configuration value by name. |
+| `getHelper( name )` | Retrieve a helper function by name. |
+
+## Language-specific researchers
+
+While `AbstractResearcher` works for language-independent analysis, each supported language ships a dedicated `Researcher` subclass that overrides default researches and configuration with language-specific implementations.
+
+Language researchers live in `src/languageProcessing/languages/<code>/Researcher.js`. The following languages have dedicated researchers:
+
+<Tabs>
+  <Tab title="European">
+    | Language code | Language |
+    |:---:|---|
+    | `de` | German |
+    | `nl` | Dutch |
+    | `fr` | French |
+    | `es` | Spanish |
+    | `it` | Italian |
+    | `pt` | Portuguese |
+    | `ru` | Russian |
+    | `ca` | Catalan |
+    | `pl` | Polish |
+    | `sv` | Swedish |
+    | `hu` | Hungarian |
+    | `cs` | Czech |
+    | `sk` | Slovak |
+    | `el` | Greek |
+    | `nb` | Norwegian |
+  </Tab>
+  <Tab title="Other regions">
+    | Language code | Language |
+    |:---:|---|
+    | `en` | English |
+    | `ar` | Arabic |
+    | `he` | Hebrew |
+    | `fa` | Farsi |
+    | `tr` | Turkish |
+    | `id` | Indonesian |
+    | `ja` | Japanese |
+  </Tab>
+</Tabs>
+
+A `_default` researcher is used as a fallback when no language-specific researcher is available for a given locale.
+
+### Importing a language researcher
+
+Language researchers are not included in the main `yoastseo` entry point. Import them directly from the build path:
+
+```javascript
+import EnglishResearcher from "yoastseo/build/languageProcessing/languages/en/Researcher";
+
+const researcher = new EnglishResearcher( paper );
+```
+
+## Running research
+
+Call `getResearch()` with the name of the research you need. The researcher executes the corresponding function with the current `Paper` and returns the result.
+
+```javascript
+import { AbstractResearcher, Paper } from "yoastseo";
+
+const paper = new Paper( "The quick brown fox jumps over the lazy dog.", {
+    keyword: "fox",
+} );
+const researcher = new AbstractResearcher( paper );
+
+const wordCount    = researcher.getResearch( "wordCountInText" );
+const sentences    = researcher.getResearch( "sentences" );
+const keyphraseCount = researcher.getResearch( "getKeyphraseCount" );
+
+console.log( wordCount );      // 9
+console.log( sentences );      // [ "The quick brown fox jumps over the lazy dog." ]
+console.log( keyphraseCount ); // { count: 1, ... }
+```
+
+## Available research methods
+
+The `AbstractResearcher` registers the following default researches. Language-specific researchers may override or extend this list.
+
+<AccordionGroup>
+  <Accordion title="Keyphrase researches">
+    | Research name | What it returns |
+    |--------------|----------------|
+    | `getKeyphraseCount` | Count and positions of keyphrase matches in the text. |
+    | `getKeyphraseDensity` | Keyphrase density as a ratio. |
+    | `getKeywordDensity` | Alias for `getKeyphraseDensity` (legacy name). |
+    | `keywordCount` | Alias for `getKeyphraseCount` (legacy name). |
+    | `keyphraseLength` | Number of words in the keyphrase. |
+    | `findKeywordInFirstParagraph` | Whether the keyphrase appears in the first paragraph. |
+    | `findKeyphraseInSEOTitle` | Position and presence of the keyphrase in the SEO title. |
+    | `functionWordsInKeyphrase` | Whether the keyphrase consists entirely of function words. |
+    | `metaDescriptionKeyword` | Keyphrase presence and count in the meta description. |
+    | `matchKeywordInSubheadings` | Keyphrase matches in subheadings. |
+    | `getAnchorsWithKeyphrase` | Anchor texts that contain the keyphrase. |
+    | `morphology` | Word forms of the keyphrase words (stems and inflections). |
+  </Accordion>
+  <Accordion title="Text structure researches">
+    | Research name | What it returns |
+    |--------------|----------------|
+    | `wordCountInText` | Total word count of the text. |
+    | `sentences` | Array of sentence strings. |
+    | `countSentencesFromText` | Number of sentences in the text. |
+    | `getParagraphs` | Array of paragraph strings. |
+    | `getParagraphLength` | Word count of each paragraph. |
+    | `getSubheadingTextLengths` | Word count of text sections between subheadings. |
+    | `getSentenceBeginnings` | First words of each sentence (for consecutive beginnings check). |
+    | `h1s` | Array of H1 elements in the text. |
+    | `imageCount` | Number of images in the text. |
+    | `videoCount` | Number of videos in the text. |
+    | `altTagCount` | Count of images with and without alt attributes. |
+  </Accordion>
+  <Accordion title="Readability researches">
+    | Research name | What it returns |
+    |--------------|----------------|
+    | `getFleschReadingScore` | Flesch reading ease score and difficulty rating. |
+    | `getPassiveVoiceResult` | Count and percentage of passive-voice sentences. |
+    | `findTransitionWords` | Count and percentage of sentences with transition words. |
+    | `readingTime` | Estimated reading time in minutes. |
+  </Accordion>
+  <Accordion title="Link researches">
+    | Research name | What it returns |
+    |--------------|----------------|
+    | `getLinks` | All links found in the text. |
+    | `getLinkStatistics` | Counts of internal, external, and `nofollow` links. |
+    | `keywordCountInSlug` | Keyphrase word matches in the URL slug. |
+    | `keywordCountInUrl` | Alias for `keywordCountInSlug` (deprecated). |
+  </Accordion>
+  <Accordion title="Meta and page researches">
+    | Research name | What it returns |
+    |--------------|----------------|
+    | `metaDescriptionLength` | Character length of the meta description. |
+    | `pageTitleWidth` | Rendered pixel width of the SEO title. |
+    | `getProminentWordsForInsights` | Most prominent content words for the insights panel. |
+    | `getProminentWordsForInternalLinking` | Prominent words used for internal linking suggestions. |
+  </Accordion>
+</AccordionGroup>
+
+## Relationship between Paper, Researcher, and Assessor
+
+The three core objects work together in a well-defined pipeline:
+
+```
+Paper  ──────────────────────────────┐
+  │                                  │
+  ▼                                  ▼
+Researcher  ──── research data ────► Assessor
+  │                                  │
+  │                                  ▼
+  └──────────────────────────────► Assessment
+                                     │
+                                     ▼
+                                  AssessmentResult
+```
+
+<Steps>
+  <Step title="Create a Paper">
+    Instantiate a `Paper` with the text and metadata you want to analyze.
+  </Step>
+  <Step title="Create a Researcher">
+    Pass the `Paper` to a language-specific (or `Abstract`) `Researcher`. The researcher holds a reference to the paper and exposes all research methods.
+  </Step>
+  <Step title="Create an Assessor">
+    Pass the `Researcher` to an `Assessor` such as `SeoAssessor` or `ContentAssessor`. The assessor holds a list of `Assessment` instances.
+  </Step>
+  <Step title="Run assessments">
+    Call `assessor.assess( paper )`. The assessor calls `researcher.setPaper( paper )` internally, then runs each applicable assessment. Each assessment calls `researcher.getResearch()` to obtain the data it needs.
+  </Step>
+  <Step title="Read results">
+    Call `assessor.getValidResults()` to retrieve the array of `AssessmentResult` objects.
+  </Step>
+</Steps>
+
+## Adding custom research
+
+Register additional research functions on any researcher instance. Custom research functions receive the `Paper` and the `Researcher` as arguments.
+
+```javascript
+researcher.addResearch( "myWordFrequency", ( paper, researcher ) => {
+    const text = paper.getText();
+    const words = text.toLowerCase().match( /\b\w+\b/g ) || [];
+    const frequency = {};
+    words.forEach( word => {
+        frequency[ word ] = ( frequency[ word ] || 0 ) + 1;
+    } );
+    return frequency;
+} );
+
+const frequency = researcher.getResearch( "myWordFrequency" );
+```
+
+<Warning>
+  Custom research names must be non-empty strings. Passing an empty string or a non-function callback throws a `MissingArgument` or `InvalidTypeError` respectively.
+</Warning>
+
+## Injecting research data
+
+For data that is expensive to compute or must come from an external source (for example, server-side morphology data), use `addResearchData()` to inject the data directly and retrieve it with `getData()`:
+
+```javascript
+researcher.addResearchData( "morphologyData", {
+    en: { /* morphology data object */ },
+} );
+
+const morphData = researcher.getData( "morphologyData" );
+```
+
+This pattern is used internally by the Yoast SEO WordPress plugin to pass morphology data files to the web worker without recomputing them.

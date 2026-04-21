@@ -1,0 +1,213 @@
+---
+title: 'Contributing to Yoast SEO open source project'
+description: 'Set up a local development environment, run JS and PHP tests, follow coding standards, and submit pull requests to the Yoast SEO GitHub repository.'
+---
+
+Yoast SEO is an open source WordPress plugin and welcomes contributions from the community. You can help by reporting bugs, submitting pull requests, improving translations, or suggesting new features. This page covers everything you need to get a working development environment and contribute code.
+
+<Info>
+The Yoast SEO GitHub repository is a developer portal. For user support, visit the [WordPress.org support forums](https://wordpress.org/support/plugin/wordpress-seo). For security issues, email security@yoast.com — do not open a public issue.
+</Info>
+
+---
+
+## Prerequisites
+
+Install the following tools before you begin:
+
+<CardGroup cols={3}>
+  <Card title="Composer" icon="box" href="https://getcomposer.org/">
+    PHP dependency manager. Required to install PHP packages and run PHP tooling.
+  </Card>
+  <Card title="Yarn" icon="yarn" href="https://yarnpkg.com/">
+    JavaScript package manager. Required for all JS builds and tests.
+  </Card>
+  <Card title="Grunt" icon="terminal" href="https://gruntjs.com/">
+    Task runner used for building assets and watching for file changes.
+  </Card>
+</CardGroup>
+
+---
+
+## Repository setup
+
+<Steps>
+  <Step title="Clone the repository">
+    Navigate to the `wp-content/plugins` directory of your local WordPress installation and clone the repository:
+
+    ```bash
+    git clone https://github.com/Yoast/wordpress-seo.git
+    cd wordpress-seo
+    ```
+
+    <Warning>
+    Always branch from `trunk`, not `main`. Pull requests should target the `trunk` branch.
+    </Warning>
+  </Step>
+
+  <Step title="Install dependencies">
+    Install PHP and JavaScript dependencies, then build all assets:
+
+    ```bash
+    composer install
+    yarn
+    grunt build
+    ```
+  </Step>
+
+  <Step title="Verify the build">
+    After the build completes, activate the plugin in your WordPress admin. If the plugin loads without errors, the setup is complete.
+  </Step>
+</Steps>
+
+---
+
+## Development builds and watch modes
+
+During active development you don't need to run a full production build each time.
+
+<Tabs>
+  <Tab title="Development build">
+    Run a dev build instead of the full production build. This skips some production-only dependencies and is faster:
+
+    ```bash
+    grunt build:dev
+    ```
+  </Tab>
+  <Tab title="Grunt watch">
+    Watch all source files and rebuild automatically on change. Also runs checks immediately when a file is saved:
+
+    ```bash
+    grunt watch
+    ```
+  </Tab>
+  <Tab title="JS watch (webpack)">
+    Start a webpack watch for JavaScript files only. The page must be refreshed manually after each rebuild:
+
+    ```bash
+    yarn start
+    ```
+
+    <Note>
+    `yarn start` watches files in the main plugin. If you are working inside a sub-package such as `packages/ui-library`, run its own watch command instead:
+
+    ```bash
+    yarn workspace @yoast/ui-library watch:js
+    ```
+    </Note>
+  </Tab>
+  <Tab title="Targeted JS/CSS builds">
+    Rebuild only JavaScript or only CSS after making changes to those files:
+
+    ```bash
+    grunt build:js
+    grunt build:css
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Running tests
+
+<Tabs>
+  <Tab title="JavaScript tests">
+    Run the full JavaScript test suite from the repository root. This covers all packages in the monorepo:
+
+    ```bash
+    yarn test
+    ```
+  </Tab>
+  <Tab title="PHP tests">
+    PHP tests use PHPUnit. Run them with:
+
+    ```bash
+    ./vendor/bin/phpunit
+    ```
+
+    Individual test files can be targeted with the `--filter` flag:
+
+    ```bash
+    ./vendor/bin/phpunit --filter My_Test_Class
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Code style
+
+Yoast SEO follows the [WordPress Coding Standards](https://make.wordpress.org/core/handbook/best-practices/coding-standards/) for PHP and its own ESLint configuration for JavaScript.
+
+Run the JavaScript linter:
+
+```bash
+yarn lint
+```
+
+PHP code style is checked automatically in CI via GitHub Actions. You can check it locally with:
+
+```bash
+./vendor/bin/phpcs
+```
+
+All new PHP functions, actions, and filters must be documented following the [WordPress inline documentation standards](https://make.wordpress.org/core/handbook/best-practices/inline-documentation-standards/php/).
+
+---
+
+## Ways to contribute
+
+<AccordionGroup>
+  <Accordion title="Reporting a bug">
+    Before opening a new issue:
+
+    - Update to the latest versions of WordPress and Yoast SEO.
+    - Search [existing issues](https://github.com/Yoast/wordpress-seo/issues) to avoid duplicates.
+    - Check the [knowledge base](https://yoa.st/1y0) for documented errors and solutions.
+    - Test with a default theme and all other plugins deactivated to rule out [plugin and theme conflicts](https://yoa.st/1y2).
+    - Check for [JavaScript errors in the browser console](https://yoa.st/1y3).
+
+    When you open the issue, follow the new issue template and include screenshots, steps to reproduce, and any relevant error messages or backtraces.
+  </Accordion>
+  <Accordion title="Submitting a pull request">
+    1. Fork the repository on GitHub.
+    2. Create a branch from `trunk`.
+    3. Make your changes, following the coding standards above.
+    4. Reference the related issue number in your commit message.
+    5. Push to your fork and open a pull request targeting `trunk` in the Yoast SEO repository.
+
+    The team reviews all pull requests. They will help bring the code into compliance with project standards before merging.
+
+    Issues labeled **patch-welcome** are a good starting point. These are enhancements the team wants but has not prioritised — accepted patches for these issues are merged after code review.
+  </Accordion>
+  <Accordion title="Contributing translations">
+    Translations are managed separately from the codebase. To translate Yoast SEO into your language, visit the [Yoast translation platform](http://translate.yoast.com/projects/wordpress-seo/).
+  </Accordion>
+  <Accordion title="Requesting a feature">
+    Before opening a feature request:
+
+    - Search [existing enhancement issues](https://github.com/yoast/wordpress-seo/issues?direction=desc&labels=Enhancement&page=1&sort=created&state=open) to avoid duplicates.
+    - If a matching request exists, leave a comment rather than opening a new issue.
+    - Provide a clear explanation of the use case and why it belongs in Yoast SEO core.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Continuous integration
+
+The repository runs several automated checks on every pull request via GitHub Actions:
+
+| Workflow | What it checks |
+|----------|---------------|
+| `cs.yml` | PHP coding standards (PHPCS) |
+| `lint.yml` | PHP syntax lint |
+| `jslint.yml` | JavaScript ESLint |
+| `jstest.yml` | JavaScript unit tests |
+| `test.yml` | PHP unit tests |
+
+All checks must pass before a pull request can be merged. You can see workflow status on the repository's main page or on individual pull requests.
+
+<Tip>
+Run `yarn lint` and `./vendor/bin/phpcs` locally before pushing to catch style issues before CI runs.
+</Tip>

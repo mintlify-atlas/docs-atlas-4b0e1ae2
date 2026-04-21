@@ -1,0 +1,160 @@
+---
+title: "Social Metadata: Control How Your Pages Are Shared"
+description: "Configure Open Graph and Twitter Card tags in Yoast SEO to control titles, descriptions, and images when pages are shared on Facebook, X, and LinkedIn."
+---
+
+When someone shares a link on Facebook, X (Twitter), LinkedIn, or any other platform that reads social metadata, those platforms parse the page's `<head>` for special meta tags. Without these tags, the platform chooses its own title, description, and image — often with poor results.
+
+Yoast SEO outputs both **Open Graph** (used by Facebook, LinkedIn, Pinterest, and most other platforms) and **Twitter Card** (used by X/Twitter) tags on every page. You can customize the values globally in Yoast SEO settings or per post/page in the Yoast SEO metabox.
+
+<Tabs>
+  <Tab title="Open Graph">
+    ## Open Graph metadata
+
+    Open Graph (OG) was created by Facebook and is now the standard used by the majority of social platforms. Yoast SEO generates the following OG tags automatically.
+
+    ### Core tags
+
+    | Tag | Source | Example value |
+    |-----|--------|---------------|
+    | `og:title` | Social title (falls back to SEO title, then post title) | `How to Bake Sourdough Bread` |
+    | `og:description` | Social description (falls back to meta description, then excerpt) | `A step-by-step guide to baking...` |
+    | `og:image` | Social image (falls back to featured image, then default image) | `https://example.com/bread.jpg` |
+    | `og:url` | Canonical URL of the page | `https://example.com/sourdough/` |
+    | `og:type` | Content type — `article` for posts, `website` for other pages | `article` |
+    | `og:site_name` | WordPress site title | `My Baking Blog` |
+    | `og:locale` | WordPress site locale | `en_US` |
+
+    ### Article-specific tags
+
+    When `og:type` is `article`, Yoast SEO also outputs:
+
+    | Tag | Value |
+    |-----|-------|
+    | `article:published_time` | Post published date (ISO 8601) |
+    | `article:modified_time` | Post last modified date |
+    | `article:author` | Author profile URL (Facebook profile URL if set) |
+    | `article:publisher` | Facebook page URL (configured in Yoast SEO settings) |
+
+    ### Facebook App ID
+
+    If you have a Facebook App ID, enter it under **Yoast SEO → Settings → Social → Facebook**. It is output as:
+
+    ```html
+    <meta property="fb:app_id" content="YOUR_APP_ID" />
+    ```
+
+    Facebook uses the App ID to associate social engagement data (likes, shares) with your app in Facebook Insights.
+
+    ### Open Graph images
+
+    Yoast SEO selects the Open Graph image using this priority order:
+
+    1. **Per-page social image** — set in the Yoast SEO metabox under the **Social** tab
+    2. **Featured image** — WordPress post thumbnail
+    3. **First image in content** — if no thumbnail is set
+    4. **Default OG image** — configured in **Yoast SEO → Settings → Social → Facebook**
+
+    The recommended OG image size is **1200 × 630 pixels** at a minimum. Facebook will crop or scale images that don't match this ratio.
+
+    ```html
+    <!-- Example Open Graph output -->
+    <meta property="og:title" content="How to Bake Sourdough Bread" />
+    <meta property="og:description" content="A step-by-step guide to baking..." />
+    <meta property="og:image" content="https://example.com/bread.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="https://example.com/sourdough/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="My Baking Blog" />
+    <meta property="og:locale" content="en_US" />
+    ```
+  </Tab>
+
+  <Tab title="Twitter Cards">
+    ## Twitter Card metadata
+
+    Twitter Cards allow X (formerly Twitter) to display rich previews when your links are shared. Yoast SEO outputs Twitter Card tags automatically for every page.
+
+    ### Core tags
+
+    | Tag | Source | Example value |
+    |-----|--------|---------------|
+    | `twitter:card` | Card type — `summary_large_image` by default | `summary_large_image` |
+    | `twitter:title` | Twitter title (falls back to OG title, then SEO title) | `How to Bake Sourdough Bread` |
+    | `twitter:description` | Twitter description (falls back to OG description) | `A step-by-step guide to baking...` |
+    | `twitter:image` | Twitter image (falls back to OG image) | `https://example.com/bread.jpg` |
+    | `twitter:site` | Site's X/Twitter username | `@mybakingblog` |
+    | `twitter:creator` | Author's X/Twitter username | `@janesmith` |
+
+    ### Card types
+
+    Yoast SEO uses `summary_large_image` by default, which displays a large image above the title and description. If no image is available, it falls back to `summary` (a small thumbnail on the left).
+
+    | Card type | Appearance |
+    |-----------|-----------|
+    | `summary_large_image` | Full-width image above title and description — used when an image is available |
+    | `summary` | Small thumbnail on the left — used as fallback when no image is set |
+
+    ### Twitter images
+
+    The Twitter image selection follows the same priority as Open Graph:
+
+    1. **Per-page Twitter image** — set in the Yoast SEO metabox under the **Social** tab
+    2. Falls back to the OG image
+    3. Falls back to the featured image
+    4. Falls back to the default OG/Twitter image in Yoast SEO settings
+
+    X recommends images of at least **800 × 418 pixels** for `summary_large_image` cards. The image is cropped to a 2:1 ratio.
+
+    ```html
+    <!-- Example Twitter Card output -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to Bake Sourdough Bread" />
+    <meta name="twitter:description" content="A step-by-step guide to baking..." />
+    <meta name="twitter:image" content="https://example.com/bread.jpg" />
+    <meta name="twitter:site" content="@mybakingblog" />
+    <meta name="twitter:creator" content="@janesmith" />
+    ```
+
+    ### Setting your Twitter username
+
+    Go to **Yoast SEO → Settings → Social → Twitter/X** and enter your site's X username (without the `@`). Individual authors can set their own X username in their **WordPress user profile** under the **Contact Info** section, which Yoast SEO reads for the `twitter:creator` tag.
+  </Tab>
+</Tabs>
+
+## Per-page social settings in the metabox
+
+You can override the social title, description, and image for any individual post or page directly in the Yoast SEO metabox. Open the **Social** tab (represented by a share icon) in the metabox.
+
+<Steps>
+  <Step title="Open the Social tab">
+    Scroll to the Yoast SEO metabox below the Block Editor and click the **Social** tab (the share icon).
+  </Step>
+  <Step title="Set the Facebook / Open Graph preview">
+    Enter a custom **Facebook title** and **Facebook description**. Click the image area to upload or select a **Facebook image** from the Media Library. A live preview shows how the post will appear in a Facebook share.
+  </Step>
+  <Step title="Set the Twitter Card preview">
+    Switch to the **Twitter** sub-tab. Enter a custom **Twitter title** and **Twitter description**, or leave blank to inherit from the Facebook/OG fields. Upload a **Twitter image** if it should differ from the OG image.
+  </Step>
+  <Step title="Save">
+    Publish or update the post. Yoast SEO immediately outputs the updated meta tags. Use the [Twitter Card Validator](https://cards-dev.twitter.com/validator) or the [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) to confirm the new tags are picked up (both tools have a "scrape again" option to bypass their cache).
+  </Step>
+</Steps>
+
+## Default fallback images
+
+A default social image is used for pages that have no featured image and no per-page social image set. Configure it under **Yoast SEO → Settings → Social**.
+
+| Setting | Used for |
+|---------|---------|
+| **Default Facebook/OG image** | All Open Graph `og:image` tags when no page-specific or featured image is available |
+| **Default Twitter image** | Twitter `twitter:image` tags when no Twitter-specific image is set and the OG image is also absent |
+
+<Tip>
+Upload a branded default image (e.g., your logo on a brand-color background at 1200 × 630 px) so shared links always display something meaningful even for pages without a featured image, such as archive pages or the homepage.
+</Tip>
+
+<Warning>
+Social platforms aggressively cache Open Graph data. After changing a social image or description, use the platform's own cache-clearing tool to see the updated preview: **Facebook Sharing Debugger** (`/tools/debug/`) or the **Twitter Card Validator** (`/cards-dev/validator`).
+</Warning>

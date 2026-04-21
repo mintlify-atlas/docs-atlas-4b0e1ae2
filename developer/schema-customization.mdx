@@ -1,0 +1,316 @@
+---
+title: 'Customize the Yoast SEO Schema.org graph with PHP'
+description: 'Modify, extend, and add Schema.org structured data pieces to the Yoast SEO @graph using wpseo_schema_* filters and custom Abstract_Schema_Piece classes.'
+---
+
+Yoast SEO automatically generates a connected Schema.org `@graph` for every page on your site. The graph links together structured data nodes — WebPage, Article, Organization, Person, BreadcrumbList — using `@id` references so search engines understand how the pieces relate. As a developer you can modify any existing node, remove nodes you don't need, or add entirely new schema pieces using WordPress filters.
+
+## How the schema graph is built
+
+The `Schema_Generator` class (`src/generators/schema-generator.php`) builds the graph in several steps:
+
+1. Instantiates a set of graph piece generators (Article, WebPage, Breadcrumb, Organization, Person, Author, FAQ, HowTo, etc.).
+2. Applies `wpseo_schema_graph_pieces` to let plugins add or remove piece generators.
+3. For each piece, calls `is_needed()` — if it returns `false`, the piece is skipped.
+4. Calls `generate()` on each piece to get its data array.
+5. Applies `wpseo_schema_<identifier>` to let plugins modify each piece's data.
+6. Applies `wpseo_schema_graph` on the entire assembled graph array.
+7. Wraps the result in `{ "@context": "https://schema.org", "@graph": [...] }`.
+
+<Info>
+Each piece is identified by a lowercase string derived from its class name (e.g. `article`, `webpage`, `organization`). The `wpseo_schema_<identifier>` filter name is constructed from this identifier at runtime.
+</Info>
+
+---
+
+## Modifying existing schema pieces
+
+### `wpseo_schema_article`
+
+Modify the Article node for posts. The filter receives the piece array, a `$context` object, the piece generator, and all generators.
+
+```php
+add_filter( 'wpseo_schema_article', 'my_custom_article_schema', 10, 2 );
+
+/**
+ * Adds a custom property to the Article schema.
+ *
+ * @param array             $data    The Article schema data.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_custom_article_schema( $data, $context ) {
+    $data['accessMode'] = 'textual';
+
+    return $data;
+}
+```
+
+### `wpseo_schema_webpage`
+
+Modify the WebPage node. Useful for adding `speakable`, `potentialAction`, or other WebPage properties.
+
+```php
+add_filter( 'wpseo_schema_webpage', 'my_custom_webpage_schema', 10, 2 );
+
+/**
+ * Adds speakable configuration to WebPage schema.
+ *
+ * @param array             $data    The WebPage schema data.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_custom_webpage_schema( $data, $context ) {
+    $data['speakable'] = [
+        '@type'    => 'SpeakableSpecification',
+        'cssSelector' => [ '.article-headline', '.article-body' ],
+    ];
+
+    return $data;
+}
+```
+
+### `wpseo_schema_organization`
+
+Modify the Organization node. Use this to add `contactPoint`, `sameAs` social profiles, or other organization properties.
+
+```php
+add_filter( 'wpseo_schema_organization', 'my_custom_organization_schema', 10, 2 );
+
+/**
+ * Adds a contact point to the Organization schema.
+ *
+ * @param array             $data    The Organization schema data.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_custom_organization_schema( $data, $context ) {
+    $data['contactPoint'] = [
+        '@type'       => 'ContactPoint',
+        'telephone'   => '+1-800-555-0100',
+        'contactType' => 'customer service',
+    ];
+
+    return $data;
+}
+```
+
+### `wpseo_schema_person`
+
+Modify the Person node. This node represents the site owner when the site is set to represent a person.
+
+```php
+add_filter( 'wpseo_schema_person', 'my_custom_person_schema', 10, 2 );
+
+/**
+ * Adds social profile links to the Person schema.
+ *
+ * @param array             $data    The Person schema data.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_custom_person_schema( $data, $context ) {
+    $data['sameAs'] = [
+        'https://twitter.com/example',
+        'https://linkedin.com/in/example',
+    ];
+
+    return $data;
+}
+```
+
+### `wpseo_schema_breadcrumb`
+
+Modify the BreadcrumbList node. Fires for both the `breadcrumb` identifier and the `breadcrumblist` type.
+
+```php
+add_filter( 'wpseo_schema_breadcrumb', 'my_custom_breadcrumb_schema', 10, 2 );
+
+/**
+ * Adds a custom item to the BreadcrumbList schema.
+ *
+ * @param array             $data    The BreadcrumbList schema data.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_custom_breadcrumb_schema( $data, $context ) {
+    // The last item in itemListElement is the current page.
+    // You can inspect or reorder $data['itemListElement'] here.
+    return $data;
+}
+```
+
+<Note>
+The schema generator removes a BreadcrumbList node from the graph entirely if it contains only one item (the root). Your filter runs before this check, so you can still add items in the filter.
+</Note>
+
+---
+
+## Adding and removing schema pieces
+
+### `wpseo_schema_graph_pieces`
+
+This filter receives the full array of piece generator objects before any of them run. Add a new generator class instance to inject a new schema piece; remove an existing entry to suppress it.
+
+```php
+add_filter( 'wpseo_schema_graph_pieces', 'my_add_schema_pieces', 10, 2 );
+
+/**
+ * Adds a custom schema piece to the graph.
+ *
+ * @param array             $pieces  The existing schema piece generators.
+ * @param Meta_Tags_Context $context The meta tags context.
+ *
+ * @return array
+ */
+function my_add_schema_pieces( $pieces, $context ) {
+    $pieces[] = new My_Custom_Schema_Piece();
+
+    return $pieces;
+}
+```
+
+To remove a built-in piece, filter it out by class name:
+
+```php
+add_filter( 'wpseo_schema_graph_pieces', 'my_remove_faq_schema', 10, 2 );
+
+function my_remove_faq_schema( $pieces, $context ) {
+    return array_filter( $pieces, function( $piece ) {
+        return ! ( $piece instanceof Yoast\WP\SEO\Generators\Schema\FAQ );
+    } );
+}
+```
+
+### Controlling piece visibility with `wpseo_schema_needs_<identifier>`
+
+Each piece's `is_needed()` result is also passed through a filter named `wpseo_schema_needs_<identifier>`. Return `false` to prevent the piece from generating even if `is_needed()` returned `true`:
+
+```php
+// Suppress the Article schema on a specific post type.
+add_filter( 'wpseo_schema_needs_article', 'my_disable_article_schema' );
+
+function my_disable_article_schema( $is_needed ) {
+    if ( get_post_type() === 'product' ) {
+        return false;
+    }
+    return $is_needed;
+}
+```
+
+---
+
+## Adding a completely new schema piece
+
+Implement the `Abstract_Schema_Piece` interface from `src/generators/schema/abstract-schema-piece.php`. You must define two methods: `is_needed()` and `generate()`. The `$context` and `$helpers` properties are injected automatically by the `Schema_Generator` before your piece runs.
+
+```php
+<?php
+
+use Yoast\WP\SEO\Generators\Schema\Abstract_Schema_Piece;
+
+/**
+ * Adds a Product schema piece to the graph.
+ */
+class My_Product_Schema_Piece extends Abstract_Schema_Piece {
+
+    /**
+     * Determines whether this piece should be added to the graph.
+     *
+     * @return bool
+     */
+    public function is_needed() {
+        return get_post_type( $this->context->id ) === 'product';
+    }
+
+    /**
+     * Generates the schema data for this piece.
+     *
+     * @return array|false The schema data, or false to skip.
+     */
+    public function generate() {
+        return [
+            '@type'       => 'Product',
+            '@id'         => $this->context->canonical . '#product',
+            'name'        => get_the_title( $this->context->id ),
+            'url'         => $this->context->canonical,
+            'description' => get_the_excerpt( $this->context->id ),
+        ];
+    }
+}
+```
+
+Register it via `wpseo_schema_graph_pieces`:
+
+```php
+add_filter( 'wpseo_schema_graph_pieces', function( $pieces, $context ) {
+    $pieces[] = new My_Product_Schema_Piece();
+    return $pieces;
+}, 10, 2 );
+```
+
+<Tip>
+Set the `$identifier` public property on your class to control which `wpseo_schema_<identifier>` filter fires for your piece and which `wpseo_schema_needs_<identifier>` filter gates it.
+</Tip>
+
+---
+
+## Filter reference
+
+<AccordionGroup>
+  <Accordion title="wpseo_schema_graph_pieces">
+    **Parameters:** `array $pieces`, `Meta_Tags_Context $context`
+
+    Add or remove piece generator objects before the graph is built. Each object must extend `Abstract_Schema_Piece`.
+  </Accordion>
+  <Accordion title="wpseo_schema_article">
+    **Parameters:** `array $data`, `Meta_Tags_Context $context`, `Abstract_Schema_Piece $generator`, `Abstract_Schema_Piece[] $generators`
+
+    Modify the Article node data array. Return the modified array.
+  </Accordion>
+  <Accordion title="wpseo_schema_webpage">
+    **Parameters:** `array $data`, `Meta_Tags_Context $context`, `Abstract_Schema_Piece $generator`, `Abstract_Schema_Piece[] $generators`
+
+    Modify the WebPage node data array. Return the modified array.
+  </Accordion>
+  <Accordion title="wpseo_schema_organization">
+    **Parameters:** `array $data`, `Meta_Tags_Context $context`, `Abstract_Schema_Piece $generator`, `Abstract_Schema_Piece[] $generators`
+
+    Modify the Organization node data array. Return the modified array.
+  </Accordion>
+  <Accordion title="wpseo_schema_person">
+    **Parameters:** `array $data`, `Meta_Tags_Context $context`, `Abstract_Schema_Piece $generator`, `Abstract_Schema_Piece[] $generators`
+
+    Modify the Person node data array. Return the modified array.
+  </Accordion>
+  <Accordion title="wpseo_schema_breadcrumb">
+    **Parameters:** `array $data`, `Meta_Tags_Context $context`, `Abstract_Schema_Piece $generator`, `Abstract_Schema_Piece[] $generators`
+
+    Modify the BreadcrumbList node data array. Return the modified array.
+  </Accordion>
+  <Accordion title="wpseo_schema_graph">
+    **Parameters:** `array $graph`, `Meta_Tags_Context $context`
+
+    Modify the fully assembled graph array after all pieces have been generated and filtered. Return the modified graph array.
+  </Accordion>
+  <Accordion title="wpseo_schema_needs_<identifier>">
+    **Parameters:** `bool $is_needed`
+
+    Return `false` to suppress a specific piece from the graph. The `<identifier>` portion is the lowercase class name or the value of `$piece->identifier`.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Testing structured data
+
+After implementing schema customizations, validate the output with Google's Rich Results Test. Navigate to any page on your site, copy its URL, and paste it into the tool. The test shows every node in the `@graph` and highlights any validation errors.
+
+<Warning>
+Schema that fails Google's validation rules will not generate rich results in Search, even if it is syntactically valid JSON-LD. Always verify your output after making changes.
+</Warning>

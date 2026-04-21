@@ -1,0 +1,225 @@
+---
+title: 'Yoast SEO indexables: architecture and developer guide'
+description: 'How Yoast SEO indexables work: what fields they store, how the hierarchy table enables breadcrumbs, when they are invalidated, and how to use the surface API.'
+---
+
+Yoast SEO's indexables system is a purpose-built database layer that caches every piece of SEO metadata for every indexable object on a WordPress site — posts, terms, users, post-type archives, the home page, 404, and search-result pages. Rather than recalculating titles, descriptions, canonical URLs, and robots directives on every page load from raw post meta, Yoast SEO reads a single row from the `wp_yoast_indexable` table. This makes the SEO head generation significantly faster at scale.
+
+## What is an indexable?
+
+An indexable is a row in the `wp_yoast_indexable` table that represents one URL-addressable object. Each row stores a snapshot of the object's SEO metadata alongside WordPress-level information such as the object ID, type, subtype, and permalink.
+
+The model is defined in `src/models/indexable.php` as `Yoast\WP\SEO\Models\Indexable`.
+
+### Object types
+
+| `object_type` | `object_sub_type` | Example |
+|---|---|---|
+| `post` | `post`, `page`, any custom post type | A blog post |
+| `term` | `category`, `tag`, any custom taxonomy | A category archive |
+| `user` | _(none)_ | An author archive |
+| `home-page` | _(none)_ | The front page / posts index |
+| `post-type-archive` | The post type slug | `/products/` archive |
+| `date-archive` | _(none)_ | A date-based archive |
+| `system-page` | `search-result`, `404` | Search results page |
+
+## The `Indexable` model
+
+The model exposes the following properties. All property access goes through the ORM layer — do not query `wp_yoast_indexable` with raw SQL.
+
+<AccordionGroup>
+  <Accordion title="Identity fields">
+    | Property | Type | Description |
+    |---|---|---|
+    | `id` | `int` | Auto-incrementing primary key. |
+    | `object_id` | `int` | WordPress object ID (post ID, term ID, user ID, etc.). |
+    | `object_type` | `string` | One of: `post`, `term`, `user`, `home-page`, `post-type-archive`, `date-archive`, `system-page`. |
+    | `object_sub_type` | `string` | Post type slug, taxonomy slug, or system page subtype. |
+    | `author_id` | `int` | Post author user ID (posts only). |
+    | `post_parent` | `int` | Parent post ID (hierarchical posts only). |
+    | `blog_id` | `int` | Multisite blog ID. |
+    | `created_at` | `string` | ISO-8601 creation timestamp. |
+    | `updated_at` | `string` | ISO-8601 last-updated timestamp. |
+    | `object_published_at` | `string` | When the underlying WordPress object was published. |
+    | `object_last_modified` | `string` | When the underlying WordPress object was last modified. |
+    | `version` | `int` | Internal schema version for migration purposes. |
+  </Accordion>
+
+  <Accordion title="SEO metadata fields">
+    | Property | Type | Description |
+    |---|---|---|
+    | `title` | `string\|null` | Custom SEO title (null means fall back to the template). |
+    | `description` | `string\|null` | Custom meta description. |
+    | `canonical` | `string\|null` | Custom canonical URL (null means use the permalink). |
+    | `breadcrumb_title` | `string` | Title used in breadcrumb trails. |
+    | `permalink` | `string` | Stored permalink for fast lookup. |
+    | `permalink_hash` | `string` | `length:md5(permalink)` — used for change detection. |
+    | `primary_focus_keyword` | `string\|null` | The primary keyphrase (max 191 UTF-8 chars). |
+    | `primary_focus_keyword_score` | `int` | SEO analysis score for the primary keyphrase. |
+    | `readability_score` | `int` | Readability analysis score. |
+    | `inclusive_language_score` | `int` | Inclusive language analysis score. |
+    | `is_cornerstone` | `bool` | Whether the content is marked as cornerstone. |
+  </Accordion>
+
+  <Accordion title="Robots fields">
+    All robots fields default to `null`, which means "inherit the global setting for this post type or taxonomy". An explicit `true` or `false` overrides the global setting for that object only.
+
+    | Property | Type | Default | Description |
+    |---|---|---|---|
+    | `is_robots_noindex` | `bool\|null` | `null` | Whether to add `noindex`. |
+    | `is_robots_nofollow` | `bool\|null` | `false` | Whether to add `nofollow`. |
+    | `is_robots_noarchive` | `bool\|null` | `null` | Whether to add `noarchive`. |
+    | `is_robots_noimageindex` | `bool\|null` | `null` | Whether to add `noimageindex`. |
+    | `is_robots_nosnippet` | `bool\|null` | `null` | Whether to add `nosnippet`. |
+  </Accordion>
+
+  <Accordion title="Open Graph and Twitter fields">
+    | Property | Type | Description |
+    |---|---|---|
+    | `open_graph_title` | `string\|null` | Custom `og:title`. |
+    | `open_graph_description` | `string\|null` | Custom `og:description`. |
+    | `open_graph_image` | `string\|null` | URL of the primary Open Graph image. |
+    | `open_graph_image_id` | `string\|null` | Attachment ID for the OG image. |
+    | `open_graph_image_source` | `string\|null` | How the image was sourced (e.g. `set-by-user`). |
+    | `open_graph_image_meta` | `string\|null` | Serialised image metadata. |
+    | `twitter_title` | `string\|null` | Custom Twitter title. |
+    | `twitter_description` | `string\|null` | Custom Twitter description. |
+    | `twitter_image` | `string\|null` | URL of the Twitter image. |
+    | `twitter_image_id` | `string\|null` | Attachment ID for the Twitter image. |
+    | `twitter_image_source` | `string\|null` | How the Twitter image was sourced. |
+    | `twitter_card` | `string\|null` | Twitter card type. |
+  </Accordion>
+
+  <Accordion title="Schema fields">
+    | Property | Type | Description |
+    |---|---|---|
+    | `schema_page_type` | `string\|null` | Overrides the default Schema.org page type. |
+    | `schema_article_type` | `string\|null` | Overrides the Schema.org article type (e.g. `NewsArticle`). |
+  </Accordion>
+
+  <Accordion title="Visibility and content fields">
+    | Property | Type | Description |
+    |---|---|---|
+    | `is_public` | `bool\|null` | Whether the page should be treated as publicly accessible. |
+    | `is_protected` | `bool` | Whether the post is password protected. |
+    | `post_status` | `string\|null` | WordPress post status at the time of last indexing. |
+    | `has_public_posts` | `bool\|null` | For terms: whether the term has at least one public post. |
+    | `has_ancestors` | `bool` | Whether the object has ancestors in the hierarchy table. |
+    | `link_count` | `int` | Number of internal links going out from this page. |
+    | `incoming_link_count` | `int` | Number of internal links pointing to this page. |
+    | `number_of_pages` | `int\|null` | Number of paginated sub-pages. |
+    | `estimated_reading_time_minutes` | `int\|null` | Estimated reading time. |
+    | `language` | `string\|null` | ISO 639-1 language code. |
+    | `region` | `string\|null` | ISO 3166-1 region code. |
+    | `prominent_words_version` | `int\|null` | Internal version of the prominent words analysis. |
+  </Accordion>
+</AccordionGroup>
+
+## The hierarchy model
+
+Parent-child relationships between indexables are stored in a separate `wp_yoast_indexable_hierarchy` table, modelled by `Yoast\WP\SEO\Models\Indexable_Hierarchy` (`src/models/indexable-hierarchy.php`).
+
+Each row represents a single ancestor relationship:
+
+| Column | Type | Description |
+|---|---|---|
+| `indexable_id` | `int` | The child indexable. |
+| `ancestor_id` | `int` | One ancestor in the chain (any depth). |
+| `depth` | `int` | Depth from the child. `1` = direct parent, `2` = grandparent, etc. |
+| `blog_id` | `int` | Multisite blog ID. |
+
+This table is denormalised: every ancestor at every depth is stored as its own row. This allows a single `WHERE indexable_id = ?` query to retrieve the complete ancestor chain without recursive queries, which is how the breadcrumb generator retrieves its trail via `Indexable_Repository::get_ancestors()`.
+
+## How indexables are built
+
+When a post, term, or user is first accessed (or saved), Yoast SEO builds its indexable through the `Indexable_Builder` class. On large sites, the initial build is done in batches via the background indexing process, which is triggered through the REST API indexing routes (`/wp-json/yoast/v1/indexing/posts`, etc.) or the WP-CLI `wp yoast index` command.
+
+Indexing only runs on production environments by default. The `wpseo_should_save_indexable` filter and the `Yoast\WP\SEO\should_index_indexables` filter (added in 18.2) let you control this:
+
+```php
+// Disable indexable saving on a specific staging environment.
+add_filter( 'Yoast\WP\SEO\should_index_indexables', function( $should_index ) {
+    if ( defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'staging' ) {
+        return false;
+    }
+    return $should_index;
+} );
+```
+
+```php
+// React when an indexable is saved or updated.
+add_action( 'wpseo_save_indexable', function( $indexable, $indexable_before ) {
+    // $indexable is the new state; $indexable_before is the previous state.
+    if ( $indexable->permalink !== $indexable_before->permalink ) {
+        // Handle permalink change.
+    }
+}, 10, 2 );
+```
+
+## When indexables are invalidated
+
+An indexable is rebuilt (marked stale and re-queued) when:
+
+- A post is saved, updated, or deleted.
+- A post's status changes (e.g. draft → publish).
+- A term is created, updated, or deleted.
+- A user profile is updated.
+- Yoast SEO settings that affect global templates (title templates, robot defaults) are changed.
+- Permalink settings in WordPress are changed — this triggers `Indexable_Helper::reset_permalink_indexables()`, which nulls out all stored permalinks and sets an indexing reason so the UI prompts a re-index.
+- An attachment is deleted (if attachment indexables are enabled).
+
+## Using the surface API
+
+The correct way to retrieve SEO metadata for a given object from PHP code is through `Yoast\WP\SEO\Surfaces\Meta_Surface` (`src/surfaces/meta-surface.php`), accessible via the global `YoastSEO()` helper.
+
+<Warning>
+  Do not query `wp_yoast_indexable` directly with `$wpdb`. The ORM layer handles type coercion (boolean columns, int columns), permalink sanitisation, and lazy loading of extensions. Bypassing it can produce incorrect values and will break under schema changes.
+</Warning>
+
+```php
+// Get meta values for the current page (within the WP template loop).
+$meta = YoastSEO()->meta->for_current_page();
+if ( $meta ) {
+    echo esc_html( $meta->title );
+    echo esc_html( $meta->description );
+    echo esc_url( $meta->canonical );
+}
+
+// Get meta values for a specific post by ID.
+$meta = YoastSEO()->meta->for_post( 42 );
+if ( $meta ) {
+    $schema = $meta->schema; // Full Schema.org @graph array.
+}
+
+// Get meta values for a term.
+$meta = YoastSEO()->meta->for_term( 7 );
+
+// Get meta values for an author archive.
+$meta = YoastSEO()->meta->for_author( 3 );
+
+// Get meta values by URL (must be on the same domain as the site).
+$meta = YoastSEO()->meta->for_url( 'https://example.com/about/' );
+```
+
+### Available `Meta_Surface` methods
+
+| Method | Description |
+|---|---|
+| `for_current_page()` | Resolves via the memoized `Meta_Tags_Context` for the current request. |
+| `for_home_page()` | Returns meta for the front page (static or blog index). |
+| `for_posts_page()` | Returns meta for the posts index page. |
+| `for_post( int $id )` | Returns meta for a specific post. |
+| `for_posts( int[] $ids )` | Returns an array of `Meta` objects for multiple posts. |
+| `for_term( int $id )` | Returns meta for a specific term. |
+| `for_author( int $id )` | Returns meta for an author's archive page. |
+| `for_post_type_archive( string $post_type )` | Returns meta for a post-type archive. |
+| `for_search_result()` | Returns meta for the search-results page. |
+| `for_404()` | Returns meta for the 404 page. |
+| `for_url( string $url )` | Looks up the indexable by permalink and returns its meta. |
+| `for_indexable( Indexable $indexable )` | Builds meta directly from a known `Indexable` instance. |
+
+Each method returns either a `Meta` value object (with `title`, `description`, `canonical`, `robots`, `schema`, and all OG/Twitter properties) or `false` if no indexable was found.
+
+<Tip>
+  When building custom blocks, REST API integrations, or CLI tools that need SEO metadata outside of the normal request lifecycle, `for_url()` or `for_post()` are the most reliable entry points.
+</Tip>

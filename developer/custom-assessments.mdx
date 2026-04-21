@@ -1,0 +1,250 @@
+---
+title: 'Adding custom SEO assessments to Yoast SEO'
+description: 'Extend Yoast SEO with custom scoring checks using the YoastSEO.js plugin API for content modifications or a custom Assessment class for new analysis bullets.'
+---
+
+Yoast SEO runs a series of assessments on your content — checks for keyphrase density, sentence length, passive voice, and more. You can add your own SEO or readability checks by hooking into the JavaScript analysis engine. There are two approaches: the **plugin API** (lightweight, filter-style modifications) and a **custom Assessor** (full control over which assessments run).
+
+## How assessments work
+
+Every check in Yoast SEO is an instance of the `Assessment` base class from `packages/yoastseo/src/scoring/assessments/assessment.js`. Each assessment implements a `getResult(paper, researcher)` method that returns an `AssessmentResult` with a numeric score and feedback text.
+
+The `Assessor` collects all active assessments and runs them against the current `Paper` (the post content, title, meta description, and keyphrase). Results feed the colored bullet indicators in the SEO and readability sidebars.
+
+### Score ranges
+
+| Score | Bullet color | Meaning |
+|-------|-------------|---------|
+| 9 | Green | Good |
+| 6–8 | Green | Acceptable |
+| 4–5 | Orange | Needs improvement |
+| 1–3 | Red | Poor |
+| -50 to 0 | Red | Bad / not applicable |
+
+<Note>
+Scores are integers. The `KeyphraseDensityAssessment` uses `9` for correct density, `4` for under the minimum, `-10` for over maximum, and `-50` for way over maximum or no keyphrase/text.
+</Note>
+
+---
+
+## Approach 1: YoastSEO.js plugin API
+
+The plugin API lets you register a plugin and hook callbacks onto named modification slots. It works like WordPress's `add_filter` / `apply_filters` in PHP, but runs synchronously in JavaScript.
+
+### Supported modifications
+
+- `content` — the post body passed to the analyzer
+- `data_page_title` — the page title string
+- `data_meta_desc` — the meta description string
+
+### Registering a plugin
+
+<Steps>
+  <Step title="Register your plugin">
+    Declare your plugin as `ready` immediately if you don't need to load external data:
+
+    ```js
+    YoastSEO.app.registerPlugin( 'myPlugin', { status: 'ready' } );
+    ```
+
+    If you need to fetch data via AJAX first, register with `status: 'loading'` and call `pluginReady` when done:
+
+    ```js
+    YoastSEO.app.registerPlugin( 'myPlugin', { status: 'loading' } );
+
+    // Fetch data, then declare ready:
+    YoastSEO.app.pluginReady( 'myPlugin' );
+    ```
+  </Step>
+
+  <Step title="Register a modification">
+    Hook a callback onto a modification slot. The callback receives the current data string and must return a string of the same type:
+
+    ```js
+    YoastSEO.app.registerModification( 'content', myCallback, 'myPlugin', 5 );
+    ```
+
+    Parameters:
+    - `modification` — name of the filter slot (`'content'`, `'data_page_title'`, `'data_meta_desc'`)
+    - `callable` — the callback function
+    - `pluginName` — must match the name used in `registerPlugin`
+    - `priority` — (optional) lower numbers run earlier; defaults to `10`
+  </Step>
+
+  <Step title="Implement your callback">
+    The callback receives the current data value and must return the (optionally modified) value:
+
+    ```js
+    function myCallback( data ) {
+      return data + ' appended content';
+    }
+    ```
+
+    <Warning>
+    Returning a value of a different type than what was passed causes the modification to be silently ignored.
+    </Warning>
+  </Step>
+</Steps>
+
+### Complete plugin example
+
+The following is taken directly from `packages/yoastseo/docs/Customization.md`:
+
+```js
+ExamplePlugin = function() {
+  YoastSEO.app.registerPlugin( 'examplePlugin', {status: 'ready'} );
+
+  /**
+   * @param modification 	{string} 	The name of the filter
+   * @param callable 		{function} 	The callable
+   * @param pluginName 	    {string} 	The plugin that is registering the modification.
+   * @param priority 		{number} 	(optional) Used to specify the order in which the callables
+   * 									associated with a particular filter are called. Lower numbers
+   * 									correspond with earlier execution.
+   */
+  YoastSEO.app.registerModification( 'content', this.myContentModification, 'examplePlugin', 5 );
+}
+
+/**
+ * Adds some text to the data...
+ *
+ * @param data The data to modify
+ */
+ExamplePlugin.prototype.myContentModification = function(data) {
+  return data + ' some text to add';
+};
+
+new ExamplePlugin();
+```
+
+### Reloading data dynamically
+
+If your plugin needs to refresh its data after the initial load, call `pluginReloaded`. This triggers a fresh analysis run:
+
+```js
+// After fetching new data in the background:
+YoastSEO.app.pluginReloaded( 'myPlugin' );
+```
+
+<Info>
+Yoast SEO allows plugins up to 3000 ms to finish preloading. Plugins that do not declare `ready` within that window are dropped and their modifications are not applied.
+</Info>
+
+---
+
+## Approach 2: Custom Assessor
+
+For more control — adding entirely new scoring checks, not just modifying content — extend the `Assessor` class and register `Assessment` instances directly.
+
+### The Assessment base class
+
+Every assessment extends `Assessment` from `packages/yoastseo/src/scoring/assessments/assessment.js` and must implement `getResult`:
+
+```js
+import Assessment from 'yoastseo/src/scoring/assessments/assessment';
+import AssessmentResult from 'yoastseo/src/values/AssessmentResult';
+
+class MyCustomAssessment extends Assessment {
+  /**
+   * Executes the assessment and returns its result.
+   *
+   * @param {Paper}      paper      The paper to run this assessment on.
+   * @param {Researcher} researcher The researcher used for the assessment.
+   *
+   * @returns {AssessmentResult} The result of the assessment.
+   */
+  getResult( paper, researcher ) {
+    const assessmentResult = new AssessmentResult();
+
+    const text = paper.getText();
+    const passes = text.length > 300;
+
+    assessmentResult.setScore( passes ? 9 : 3 );
+    assessmentResult.setText(
+      passes
+        ? 'Your content is long enough.'
+        : 'Your content is too short. Add more detail.'
+    );
+
+    return assessmentResult;
+  }
+
+  /**
+   * Determines whether this assessment applies to the given paper.
+   *
+   * @param {Paper} paper The paper to check.
+   * @returns {boolean}
+   */
+  isApplicable( paper ) {
+    return paper.hasText();
+  }
+}
+
+export default MyCustomAssessment;
+```
+
+### Optional methods on Assessment
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getResult` | `(paper, researcher) => AssessmentResult` | **Required.** Runs the check and returns a scored result. |
+| `isApplicable` | `(paper, researcher) => boolean` | Return `false` to skip this assessment for the given paper. Defaults to `true`. |
+| `hasEnoughContentForAssessment` | `(paper, minLength = 50) => boolean` | Helper that strips HTML and shortcodes before checking length. |
+| `getMarks` | `() => Mark[]` | Return highlight marks to apply in the content editor. |
+
+### Registering an assessment via the plugin API
+
+Use `_registerAssessment` on the `Pluggable` object to attach your assessment to an existing assessor. The assessment name is automatically prefixed with the plugin name to ensure uniqueness:
+
+```js
+YoastSEO.app.registerPlugin( 'myPlugin', { status: 'ready' } );
+
+// pluggable._registerAssessment( assessor, name, assessment, pluginName )
+YoastSEO.app.pluggable._registerAssessment(
+  YoastSEO.app.seoAssessor,
+  'myCustomCheck',
+  new MyCustomAssessment(),
+  'myPlugin'
+);
+```
+
+<Tip>
+The `identifier` property on the assessment instance is set to `pluginName + '-' + name` automatically. You do not need to set it yourself when using `_registerAssessment`.
+</Tip>
+
+### Real-world example: KeyphraseDensityAssessment
+
+The built-in `KeyphraseDensityAssessment` (`packages/yoastseo/src/scoring/assessments/seo/KeywordDensityAssessment.js`) is a good reference for a complete assessment. Key details:
+
+- Sets `this.identifier = "keyphraseDensity"` in the constructor
+- Merges caller-provided config with sensible defaults (min density `0.5%`, max `3%`)
+- Returns different scores based on whether density is under minimum (`4`), correct (`9`), over maximum (`-10`), or way over (`-50`)
+- Calls `researcher.getResearch('getKeyphraseCount')` to delegate the actual counting to a `Researcher` research function
+
+```js
+getResult( paper, researcher ) {
+  const assessmentResult = new AssessmentResult();
+
+  this._canAssess = paper.hasKeyword() && paper.hasText();
+
+  // ... scoring logic ...
+
+  assessmentResult.setScore( calculatedScore.score );
+  assessmentResult.setText( calculatedScore.resultText );
+
+  return assessmentResult;
+}
+```
+
+---
+
+## Choosing an approach
+
+<AccordionGroup>
+  <Accordion title="When to use the plugin API">
+    Use `registerModification` when you want to pre-process or augment the content string before analysis runs — for example, to inject custom fields into the body text so Yoast SEO counts keywords in them.
+  </Accordion>
+  <Accordion title="When to use a custom Assessment">
+    Use a custom `Assessment` class when you want to add a new scoring bullet to the SEO or readability sidebar — for example, a check that the post has a custom field filled in, or that the title starts with a specific word.
+  </Accordion>
+</AccordionGroup>

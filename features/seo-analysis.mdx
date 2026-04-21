@@ -1,0 +1,178 @@
+---
+title: "SEO Analysis: Optimize Every Page for Search Results"
+description: "Learn how Yoast SEO's traffic-light scoring system evaluates keyphrases, titles, meta descriptions, links, and images to improve your search rankings."
+---
+
+Yoast SEO runs a comprehensive SEO analysis on every post, page, and custom post type in WordPress. The analysis evaluates more than a dozen individual checks and aggregates them into a simple traffic-light score — red, orange, or green — displayed in the Yoast SEO metabox beneath the editor.
+
+## How the traffic-light scoring system works
+
+Each assessment produces a numeric score from 1 to 9, which is mapped to a color:
+
+| Score | Color | Meaning |
+|-------|-------|---------|
+| 7 – 9 | **Green** | Good — meets or exceeds the recommendation |
+| 5 – 6 | **Orange** | OK — room for improvement |
+| 1 – 4 | **Red** | Needs attention |
+| Negative | **Red** | Severe problem (e.g., keyphrase overuse) |
+
+The overall bullet at the top of the SEO analysis panel reflects the lowest-scoring individual check. Fixing every red item will turn it green.
+
+## Focus keyphrase
+
+The focus keyphrase is the search term you most want this page to rank for. You enter it in the **Focus keyphrase** field in the Yoast SEO metabox. Yoast SEO then checks every content element — title, meta description, URL slug, body text, image alt attributes, and subheadings — to verify the keyphrase is present and used at the right frequency.
+
+**How matching works:** Yoast SEO uses morphological analysis (word forms) for supported languages. For English, searching for "running shoes" will also match "run shoe" or "runner's shoes". For languages without morphology support, only exact string matches are counted.
+
+<Note>
+Related keyphrases (synonyms and LSI variants) are available in **Yoast SEO Premium**. They allow multiple keyword variants to contribute to a single green score without penalizing density.
+</Note>
+
+## SEO assessments
+
+<AccordionGroup>
+  <Accordion title="Keyphrase density">
+    Checks that your focus keyphrase appears at the right frequency in the body text.
+
+    - **Recommended range (long text):** 0.5 % – 3 % (or up to 3.5 % when word-form analysis is active)
+    - **Over-optimization penalty:** A density above 4 % returns a score of -50 (severe red)
+    - **Short texts (≤ 100 words):** The assessment expects 1–2 occurrences instead of a percentage
+
+    The assessment highlights every keyphrase occurrence in the editor so you can review them in context.
+  </Accordion>
+
+  <Accordion title="Keyphrase in SEO title">
+    Verifies that the focus keyphrase appears in the SEO title (the `<title>` tag). Placing the keyphrase at or near the beginning of the title is considered best practice and earns a higher score.
+  </Accordion>
+
+  <Accordion title="SEO title width">
+    Measures the pixel width of the SEO title, mirroring how Google renders it in search results.
+
+    | Width (px) | Score | Status |
+    |------------|-------|--------|
+    | 400 – 600 | 9 | Green — ideal range |
+    | 1 – 399 | 6 | Orange — too short |
+    | > 600 | 3 | Red — will be truncated |
+    | 0 | 1 | Red — no title |
+
+    The snippet preview in the metabox updates in real time as you type.
+  </Accordion>
+
+  <Accordion title="Meta description length">
+    Evaluates whether a meta description has been written and whether it falls within Google's visible range.
+
+    | Length (chars) | Score | Status |
+    |----------------|-------|--------|
+    | 120 – 156 | 9 | Green — correct length |
+    | 1 – 120 | 6 | Orange — too short |
+    | > 156 | 6 | Orange — too long |
+    | 0 | 1 | Red — missing |
+
+    Japanese uses a different character-count threshold defined by a language-specific config.
+  </Accordion>
+
+  <Accordion title="Meta description contains keyphrase">
+    Checks whether the focus keyphrase (or its word forms) appears in the meta description. This does not directly affect ranking but helps searchers identify relevant results and can increase click-through rate.
+  </Accordion>
+
+  <Accordion title="Keyphrase in introduction">
+    Checks that the focus keyphrase appears in the first paragraph of the content. Google tends to weight the opening sentences heavily when determining relevance.
+  </Accordion>
+
+  <Accordion title="Keyphrase in subheadings">
+    Checks whether between 30 % and 75 % of your H2 and H3 subheadings contain the keyphrase or its synonyms. Having too few misses an opportunity; having more than 75 % is flagged as over-optimization. Short texts without any subheadings are not penalized.
+  </Accordion>
+
+  <Accordion title="Keyphrase in slug">
+    Verifies that the focus keyphrase appears in the URL slug. Stop words (function words) in the slug are ignored; only content words are checked.
+  </Accordion>
+
+  <Accordion title="Keyphrase distribution">
+    Checks whether the keyphrase is spread evenly throughout the entire text rather than clustered in one section. An even distribution signals comprehensive coverage of the topic.
+  </Accordion>
+
+  <Accordion title="Keyphrase in image alt text">
+    Checks whether at least one image in the content has an alt attribute that contains the focus keyphrase or its word forms. This assessment is separate from the accessibility alt-text check.
+  </Accordion>
+
+  <Accordion title="Image alt attributes (all images)">
+    Checks that every image on the page has a non-empty alt attribute. This assessment scores bad (3) if any images are missing alt text and good (9) only when all images carry alt attributes.
+  </Accordion>
+
+  <Accordion title="Text length">
+    Checks the word count of the content body.
+
+    | Words | Score |
+    |-------|-------|
+    | ≥ 300 | 9 — recommended minimum |
+    | 250 – 299 | 6 — slightly below minimum |
+    | 200 – 249 | 3 — below minimum |
+    | 100 – 199 | -10 — far below minimum |
+    | < 100 | -20 — very far below minimum |
+
+    Cornerstone content uses stricter thresholds. Character-based counting is used for Japanese.
+  </Accordion>
+
+  <Accordion title="Internal links">
+    Checks for the presence of at least one internal do-follow link.
+
+    | Status | Score |
+    |--------|-------|
+    | All internal links are do-follow | 9 |
+    | Mix of do-follow and no-follow | 8 |
+    | All internal links are no-follow | 7 |
+    | No internal links | 3 |
+  </Accordion>
+
+  <Accordion title="Outbound links">
+    Encourages linking to relevant external sources. The assessment checks for the presence of at least one outbound link and whether it is do-follow.
+  </Accordion>
+
+  <Accordion title="Keyphrase length">
+    Checks that the keyphrase is neither too short (single function word) nor too long. Multi-word keyphrases are fully supported, but overly long phrases reduce analysis accuracy.
+  </Accordion>
+
+  <Accordion title="Function words in keyphrase">
+    Warns when the keyphrase consists entirely of function words (e.g., "the best") without content words, as such phrases cannot meaningfully target search intent.
+  </Accordion>
+
+  <Accordion title="Single H1">
+    Checks that the page contains exactly one H1 heading. Multiple H1s may confuse search engines about the primary topic.
+  </Accordion>
+
+  <Accordion title="Competing links (Premium)">
+    Available in Yoast SEO Premium. Warns if the content contains links to pages that target the same keyphrase, which can dilute the internal linking signal for the current page.
+  </Accordion>
+</AccordionGroup>
+
+## Cornerstone content
+
+Pages marked as **Cornerstone content** in the Yoast SEO metabox are held to stricter standards:
+
+- Minimum text length thresholds are higher
+- Keyphrase density tolerances are tighter
+- The subheading distribution check penalizes more aggressively
+
+Use cornerstone content for your most important pillar pages. Link to them frequently from related posts to build topical authority.
+
+<Tip>
+Enable cornerstone content only for your 5–10 most important pages. Marking everything as cornerstone defeats the purpose and does not confer additional SEO benefit.
+</Tip>
+
+## Score interpretation guide
+
+<CardGroup cols={3}>
+  <Card title="Green bullet" icon="circle-check">
+    All major checks pass. The page is well-optimized for the focus keyphrase. Continue monitoring after publishing.
+  </Card>
+  <Card title="Orange bullet" icon="circle-exclamation">
+    Some checks need improvement. Review the individual orange items in the analysis panel and address the most impactful ones first.
+  </Card>
+  <Card title="Red bullet" icon="circle-xmark">
+    One or more critical checks are failing. The page may underperform in search until these issues are resolved. Negative scores indicate keyword stuffing.
+  </Card>
+</CardGroup>
+
+<Warning>
+A green Yoast SEO score does not guarantee a specific ranking position. It means the content is well-structured for on-page SEO. Off-page factors such as backlinks and domain authority also influence rankings.
+</Warning>

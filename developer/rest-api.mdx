@@ -1,0 +1,261 @@
+---
+title: 'Yoast SEO WordPress REST API: endpoints and fields'
+description: 'Reference for Yoast SEO REST endpoints: the get_head URL route, yoast_head and yoast_head_json fields on posts and terms, and the background indexing routes.'
+---
+
+Yoast SEO extends the WordPress REST API in two distinct ways: it registers its own routes under the `yoast/v1` namespace, and it injects `yoast_head` and `yoast_head_json` fields into every standard WordPress post, term, user, and post-type-archive response. All public endpoints require no authentication for publicly accessible content.
+
+<Note>
+  The headless REST endpoints (`get_head` and the `yoast_head` fields) are only active when the **Headless REST Endpoints** setting is enabled in Yoast SEO settings. The `Headless_Rest_Endpoints_Enabled_Conditional` conditional class governs this. The indexing routes are always registered.
+</Note>
+
+## The `get_head` endpoint
+
+Returns the complete SEO `<head>` HTML and a structured JSON representation for any URL on the site.
+
+```
+GET /wp-json/yoast/v1/get_head?url=<page-url>
+```
+
+**Source:** `src/routes/indexables-head-route.php` — `Indexables_Head_Route`
+
+### Parameters
+
+<ResponseField name="url" type="string" required>
+  The fully-qualified URL of the page to retrieve SEO data for. Must be a URL on the same domain as the WordPress installation. The `url` parameter is validated with `filter_var( $url, FILTER_VALIDATE_URL )` before processing.
+</ResponseField>
+
+### Authentication
+
+None required for publicly accessible pages. The route registers `permission_callback` as `__return_true`.
+
+### Example request
+
+```bash
+curl "https://example.com/wp-json/yoast/v1/get_head?url=https://example.com/blog-post/"
+```
+
+### Example response
+
+```json
+{
+  "html": "<title>My Blog Post &#x2013; Example Site</title>\n<meta name=\"description\" content=\"A short description of this post.\" />\n<link rel=\"canonical\" href=\"https://example.com/blog-post/\" />\n<meta property=\"og:title\" content=\"My Blog Post\" />\n...",
+  "json": {
+    "title": "My Blog Post – Example Site",
+    "description": "A short description of this post.",
+    "robots": {
+      "index": "index",
+      "follow": "follow"
+    },
+    "canonical": "https://example.com/blog-post/",
+    "og_locale": "en_US",
+    "og_type": "article",
+    "og_title": "My Blog Post",
+    "og_description": "A short description of this post.",
+    "og_url": "https://example.com/blog-post/",
+    "og_site_name": "Example Site",
+    "article_published_time": "2025-03-01T10:00:00+00:00",
+    "article_modified_time": "2025-03-15T14:30:00+00:00",
+    "og_image": [
+      {
+        "width": 1200,
+        "height": 630,
+        "url": "https://example.com/wp-content/uploads/featured.jpg",
+        "type": "image/jpeg"
+      }
+    ],
+    "twitter_card": "summary_large_image",
+    "twitter_title": "My Blog Post",
+    "twitter_description": "A short description of this post.",
+    "twitter_image": "https://example.com/wp-content/uploads/featured.jpg",
+    "schema": {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Article",
+          "@id": "https://example.com/blog-post/#article"
+        }
+      ]
+    }
+  },
+  "status": 200
+}
+```
+
+### Response fields
+
+<ResponseField name="html" type="string">
+  The raw HTML string that Yoast SEO would output inside `<head>`. Includes all `<title>`, `<meta>`, `<link>`, and `<script type="application/ld+json">` tags.
+</ResponseField>
+
+<ResponseField name="json" type="object">
+  Structured representation of the SEO metadata. Suitable for frameworks that need individual values rather than raw HTML.
+
+  <Expandable title="json fields">
+    <ResponseField name="title" type="string">
+      The resolved SEO title, after variable replacement and the `wpseo_title` filter.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      The meta description string.
+    </ResponseField>
+    <ResponseField name="robots" type="object">
+      Key-value map of robots directives. Keys include `index`, `follow`, `max-snippet`, `max-image-preview`, `max-video-preview`.
+    </ResponseField>
+    <ResponseField name="canonical" type="string">
+      The canonical URL for the page.
+    </ResponseField>
+    <ResponseField name="og_locale" type="string">
+      The `og:locale` value, e.g. `en_US`.
+    </ResponseField>
+    <ResponseField name="og_type" type="string">
+      The `og:type` value, e.g. `article` or `website`.
+    </ResponseField>
+    <ResponseField name="og_title" type="string">
+      The `og:title` value.
+    </ResponseField>
+    <ResponseField name="og_description" type="string">
+      The `og:description` value.
+    </ResponseField>
+    <ResponseField name="og_url" type="string">
+      The `og:url` value.
+    </ResponseField>
+    <ResponseField name="og_site_name" type="string">
+      The `og:site_name` value.
+    </ResponseField>
+    <ResponseField name="og_image" type="array">
+      Array of image objects. Each object has `url`, `width`, `height`, and `type`.
+    </ResponseField>
+    <ResponseField name="twitter_card" type="string">
+      Twitter card type, e.g. `summary_large_image`.
+    </ResponseField>
+    <ResponseField name="twitter_title" type="string">
+      Twitter-specific title.
+    </ResponseField>
+    <ResponseField name="twitter_description" type="string">
+      Twitter-specific description.
+    </ResponseField>
+    <ResponseField name="twitter_image" type="string">
+      URL of the Twitter image.
+    </ResponseField>
+    <ResponseField name="schema" type="object">
+      The full Schema.org `@graph` payload as a PHP-decoded object.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="integer">
+  HTTP status code. `200` for found pages, `404` when no indexable matches the URL.
+</ResponseField>
+
+---
+
+## `yoast_head` and `yoast_head_json` REST fields
+
+Yoast SEO injects two extra fields into every WordPress REST API response for posts, pages, custom post types, taxonomies, users, and post-type archives. This is implemented in `src/routes/yoast-head-rest-field.php` via `register_rest_field()`.
+
+| Field | Type | Content |
+|---|---|---|
+| `yoast_head` | `string` | Raw `<head>` HTML string — identical to what `get_head` returns in its `html` property. |
+| `yoast_head_json` | `object` | Structured JSON object — identical to the `json` property of `get_head`. |
+
+### Supported object types
+
+The fields are registered for:
+
+- All public, indexable post types (e.g. `post`, `page`, custom post types)
+- All indexable taxonomies (e.g. `category`, `tag`, custom taxonomies; note `post_tag` is exposed as `tag`)
+- `user` (author archives)
+- `type` (post-type archives)
+
+### Example: fetching a post with SEO data
+
+```bash
+curl "https://example.com/wp-json/wp/v2/posts/123"
+```
+
+```json
+{
+  "id": 123,
+  "title": { "rendered": "My Blog Post" },
+  "yoast_head": "<title>My Blog Post &#x2013; Example Site</title>\n...",
+  "yoast_head_json": {
+    "title": "My Blog Post – Example Site",
+    "description": "A short description.",
+    "canonical": "https://example.com/blog-post/",
+    "og_type": "article",
+    "schema": { "@context": "https://schema.org", "@graph": [] }
+  }
+}
+```
+
+### Example: fetching a term with SEO data
+
+```bash
+curl "https://example.com/wp-json/wp/v2/categories/5"
+```
+
+```json
+{
+  "id": 5,
+  "name": "Technology",
+  "yoast_head": "<title>Technology Archives &#x2013; Example Site</title>\n...",
+  "yoast_head_json": {
+    "title": "Technology Archives – Example Site",
+    "og_type": "website"
+  }
+}
+```
+
+<Tip>
+  For headless or decoupled WordPress setups, `yoast_head_json` is the most convenient field because it gives you individual values you can map to your framework's `<Head>` component without needing to parse HTML.
+</Tip>
+
+---
+
+## Indexing routes
+
+These routes power the background indexing process that builds the indexables database. They require the `edit_posts` capability (`can_index` permission callback).
+
+**Namespace:** `yoast/v1`  
+**Source:** `src/routes/indexing-route.php` — `Indexing_Route`
+
+All indexing routes use `POST`. They process a batch of unindexed objects and return a `{ "objects": [...], "total_time": 0.123 }` response.
+
+<Tabs>
+  <Tab title="Posts & terms">
+    | Method | Route | Description |
+    |---|---|---|
+    | `POST` | `/wp-json/yoast/v1/indexing/posts` | Index a batch of unindexed posts. |
+    | `POST` | `/wp-json/yoast/v1/indexing/terms` | Index a batch of unindexed terms. |
+    | `POST` | `/wp-json/yoast/v1/indexing/post-type-archives` | Index a batch of post-type archive pages. |
+    | `POST` | `/wp-json/yoast/v1/indexing/general` | Index general objects (home page, 404, search result, etc.). |
+  </Tab>
+  <Tab title="Link indexing">
+    | Method | Route | Description |
+    |---|---|---|
+    | `POST` | `/wp-json/yoast/v1/link-indexing/posts` | Index internal links within posts. |
+    | `POST` | `/wp-json/yoast/v1/link-indexing/terms` | Index internal links within term descriptions. |
+  </Tab>
+  <Tab title="Lifecycle">
+    | Method | Route | Description |
+    |---|---|---|
+    | `POST` | `/wp-json/yoast/v1/indexing/prepare` | Run pre-indexing setup (clears stale transients). |
+    | `POST` | `/wp-json/yoast/v1/indexing/indexables-complete` | Mark indexable indexation as complete. |
+    | `POST` | `/wp-json/yoast/v1/indexing/complete` | Mark the full indexing process as complete. |
+  </Tab>
+</Tabs>
+
+<Warning>
+  The indexing routes are intended for use by the Yoast SEO admin UI and CLI tools. Calling them repeatedly from custom code can cause performance issues or leave the indexing state flag in an inconsistent state.
+</Warning>
+
+---
+
+## Internal admin routes
+
+The following routes are used by the Yoast SEO admin interface. They are not designed for external consumption.
+
+| Route | Purpose |
+|---|---|
+| `GET /wp-json/yoast/v1/meta/search` | Search post meta fields by prefix (editor use only; requires `edit_posts` on the given post). |
+| `GET /wp-json/yoast/v1/supported-features` | Returns a list of features supported by the current Yoast SEO installation (requires `Addon_Installation_Conditional`). |

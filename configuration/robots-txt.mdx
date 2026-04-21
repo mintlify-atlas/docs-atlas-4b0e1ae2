@@ -1,0 +1,137 @@
+---
+title: 'Manage your robots.txt file with Yoast SEO'
+description: 'Learn how Yoast SEO manages robots.txt, what default directives it adds, how to edit it in the WordPress admin, and how it differs from meta robots tags.'
+---
+
+The `robots.txt` file is a plain-text file in your site's root directory that tells search engine crawlers which paths they are allowed or not allowed to request. It is one of the first files a crawler fetches when it visits your domain. Yoast SEO integrates with WordPress's built-in `robots.txt` handling to append a sitemap reference and manages allow/disallow directives programmatically through its `Robots_Txt_Helper` class.
+
+## How Yoast SEO manages robots.txt
+
+Yoast SEO does not write a physical `robots.txt` file by default — WordPress generates its content dynamically via the `do_robots()` function when no physical file exists. Yoast SEO hooks into this process to add:
+
+- A `Sitemap:` directive pointing to your XML sitemap index (e.g., `Sitemap: https://example.com/sitemap_index.xml`)
+- Any additional allow or disallow rules defined through the `Robots_Txt_Helper` API
+
+The helper exposes three directive types:
+- `add_disallow( $user_agent, $path )` — adds a `Disallow:` rule for a specific user agent
+- `add_allow( $user_agent, $path )` — adds an `Allow:` rule for a specific user agent
+- `add_sitemap( $absolute_url )` — registers a sitemap URL to include in the file
+
+## Editing robots.txt in the WordPress admin
+
+<Steps>
+  <Step title="Open the File Editor">
+    Go to **SEO > Tools** in the WordPress admin and click **File Editor**.
+  </Step>
+  <Step title="Locate the robots.txt section">
+    The robots.txt editor appears at the top of the page. If no physical `robots.txt` file exists, Yoast SEO offers a button to create one from the current dynamic content.
+  </Step>
+  <Step title="Edit and save">
+    Make your changes in the textarea and click **Save changes to robots.txt**. The file must be writable by the web server for this to work.
+  </Step>
+</Steps>
+
+<Note>
+  Once a physical `robots.txt` file exists in your site root, WordPress (and Yoast SEO) stop generating dynamic content for that path. The file editor directly modifies the physical file. Changes you make to the physical file override Yoast SEO's dynamic additions, including the sitemap directive.
+</Note>
+
+## Default robots.txt structure
+
+For a standard WordPress installation without a physical `robots.txt`, the dynamic output typically resembles:
+
+```
+User-agent: *
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+
+Sitemap: https://example.com/sitemap_index.xml
+```
+
+WordPress adds the `wp-admin` rules by default. Yoast SEO appends the `Sitemap:` line.
+
+## robots.txt vs meta robots
+
+These two mechanisms are distinct and serve different purposes:
+
+| | robots.txt | Meta robots |
+|---|---|---|
+| **Scope** | Entire URL paths | Individual pages |
+| **Location** | `robots.txt` file in site root | `<meta name="robots">` tag in `<head>` |
+| **Effect** | Prevents crawlers from requesting those URLs | Instructs crawlers not to index or follow links on pages they do crawl |
+| **Managed in Yoast** | SEO > Tools > File Editor | SEO > Search Appearance, or per-post meta box |
+
+<Warning>
+  Blocking a URL in `robots.txt` prevents crawlers from accessing it, but it does **not** prevent that URL from being indexed if other pages link to it. To reliably remove a page from search results, use `noindex` via meta robots on the page itself — and do not block it in `robots.txt`, because crawlers cannot read the `noindex` tag on pages they are disallowed from accessing.
+</Warning>
+
+## Common patterns
+
+### Blocking the wp-admin directory
+
+WordPress adds this automatically to the dynamic robots.txt output. If you are using a physical file, make sure it includes:
+
+```
+User-agent: *
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+```
+
+The `admin-ajax.php` allow rule is necessary because many front-end features (forms, infinite scroll, etc.) rely on AJAX requests to that endpoint.
+
+### Disallowing search results pages
+
+Site search result pages produce duplicate content and waste crawl budget. Block them with:
+
+```
+User-agent: *
+Disallow: /?s=
+Disallow: /search/
+```
+
+Adjust the path to match your permalink structure. If you use pretty permalinks with a custom search base, update the path accordingly.
+
+### Blocking a specific directory
+
+```
+User-agent: *
+Disallow: /private-content/
+```
+
+### Targeting a specific crawler
+
+```
+User-agent: Googlebot
+Disallow: /staging/
+
+User-agent: *
+Disallow:
+```
+
+## Warning: do not block CSS and JavaScript
+
+<Warning>
+  Do not add `Disallow` rules for your CSS, JavaScript, or font files. Google uses these resources to render pages and assess content. Blocking them prevents Google from understanding your pages correctly, which can negatively affect rankings.
+
+  Specifically, avoid rules like:
+  ```
+  Disallow: /wp-content/
+  Disallow: /wp-includes/
+  ```
+  These paths contain theme stylesheets and scripts that Google needs to render your pages.
+</Warning>
+
+## Using the Robots_Txt_Helper in custom code
+
+If you are building a plugin or custom integration, use `Robots_Txt_Helper` to add directives programmatically rather than editing the file directly:
+
+```php
+add_action( 'Yoast\WP\SEO\register_robots_rules', function( $robots_txt_helper ) {
+    // Block a custom bot from a specific path.
+    $robots_txt_helper->add_disallow( 'BadBot', '/private/' );
+
+    // Add an additional sitemap.
+    $robots_txt_helper->add_sitemap( 'https://example.com/news-sitemap.xml' );
+} );
+```
+
+Directives registered this way are included in the dynamic robots.txt output. They do not affect a physical `robots.txt` file.

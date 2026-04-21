@@ -1,0 +1,146 @@
+---
+title: "Schema & Structured Data: How to Unlock Rich Results"
+description: "Understand how Yoast SEO outputs Schema.org JSON-LD for Articles, WebPages, Organizations, Persons, FAQs, HowTos, and BreadcrumbLists to earn rich results."
+---
+
+Schema.org is a shared vocabulary for structured data that search engines — Google, Bing, Yahoo, and Yandex — created and maintain together. By adding Schema.org markup to your pages, you give search engines a machine-readable description of your content. Google uses this data to display **rich results**: enhanced SERP listings that can include star ratings, FAQ dropdowns, breadcrumb trails, event dates, and more.
+
+Yoast SEO outputs structured data as **JSON-LD** (JavaScript Object Notation for Linked Data), injected into the `<head>` of every page. JSON-LD is Google's recommended format because it does not require changes to visible HTML.
+
+## How Yoast SEO determines which schema to output
+
+Yoast SEO builds a **graph** — a set of connected `@type` nodes — on each page. The nodes that appear depend on the page type, the site-wide settings (organization vs. personal site), the post type, and the Gutenberg blocks used in the content.
+
+The logic is managed by the `Schema_Generator` class in `src/generators/`, which assembles individual **schema pieces** (one PHP class per type). Each piece has an `is_needed()` method that returns `true` or `false` based on the current context. Only needed pieces are included in the final `<script type="application/ld+json">` output.
+
+## Supported schema types
+
+<AccordionGroup>
+  <Accordion title="WebSite">
+    Present on **every page** of the site. Contains the site name, URL, description, and a `SearchAction` that enables Google's Sitelinks Search Box in search results.
+
+    ```json
+    {
+      "@type": "WebSite",
+      "name": "My Site",
+      "url": "https://example.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": { "urlTemplate": "https://example.com?s={search_term_string}" }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="WebPage">
+    Present on **every indexable page**. The `@type` is dynamically determined from the page context — it can be `WebPage`, `AboutPage`, `ContactPage`, `CollectionPage`, `FAQPage`, or other subtypes. For posts, `datePublished` and `dateModified` are included.
+
+    A `ReadAction` `potentialAction` is attached so search engines can understand that the page's intent is to be read. The `breadcrumb` property links to the `BreadcrumbList` node on the same page.
+  </Accordion>
+
+  <Accordion title="Article">
+    Added to **single post pages** when the post type supports authors and the schema article type is not set to `None`. The `@type` value comes from the per-post setting in the Yoast SEO metabox (e.g., `Article`, `BlogPosting`, `NewsArticle`).
+
+    Key properties generated from the source:
+    - `headline` — from the post title
+    - `datePublished` / `dateModified` — from post date fields
+    - `author` — linked to the `Person` node for the post author
+    - `publisher` — linked to the `Organization` or `Person` node representing the site
+    - `wordCount` — computed from post content and title
+    - `keywords` — drawn from the `post_tag` taxonomy (filterable via `wpseo_schema_article_keywords_taxonomy`)
+    - `articleSection` — drawn from the `category` taxonomy (filterable via `wpseo_schema_article_sections_taxonomy`)
+    - `commentCount` — included when comments are open
+  </Accordion>
+
+  <Accordion title="Organization">
+    Added when **SEO → Settings → Site representation** is set to **Organization**. Contains the company name, URL, logo, and social profile URLs (`sameAs` array).
+
+    ```json
+    {
+      "@type": "Organization",
+      "name": "Acme Corp",
+      "url": "https://example.com",
+      "logo": { "@type": "ImageObject", "url": "..." },
+      "sameAs": ["https://facebook.com/acme", "https://x.com/acme"]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Person">
+    Added when **Site representation** is set to **Person**. Includes the user's display name, bio, avatar image, and social profile links. The supported social platforms are: Facebook, Instagram, LinkedIn, Pinterest, Twitter/X, Myspace, YouTube, SoundCloud, Tumblr, and Wikipedia.
+  </Accordion>
+
+  <Accordion title="BreadcrumbList">
+    Added to every page except 404 error pages. Reflects the page's position in the site hierarchy. Each breadcrumb `ListItem` has a `position`, `name`, and optional `item` (URL). The last breadcrumb intentionally omits the URL per Google's specification.
+  </Accordion>
+
+  <Accordion title="FAQ (FAQPage)">
+    Added automatically when a post contains the **Yoast FAQ Block** (`yoast/faq-block`). The page type array gains `FAQPage`, and each question with a non-empty answer is output as a `Question` + `Answer` pair. This schema type qualifies for Google's FAQ rich results.
+  </Accordion>
+
+  <Accordion title="HowTo">
+    Added when a post contains the **Yoast How-To Block** (`yoast/how-to-block`). Each step is a `HowToStep` with optional name, description, image, and duration. This schema type qualifies for Google's HowTo rich results.
+  </Accordion>
+</AccordionGroup>
+
+## Customizing schema with filters
+
+Yoast SEO exposes a family of `wpseo_schema_*` WordPress filters so developers can modify schema output without editing plugin files.
+
+### Modifying a specific type
+
+```php
+// Add a custom property to the Article schema
+add_filter( 'wpseo_schema_article', function( array $data ) {
+    $data['speakable'] = [
+        '@type'    => 'SpeakableSpecification',
+        'cssSelector' => [ '.article-headline', '.article-summary' ],
+    ];
+    return $data;
+} );
+```
+
+### Adding a new graph piece
+
+```php
+// Add a custom Event piece to the schema graph
+add_filter( 'wpseo_schema_graph_pieces', function( array $pieces, $context ) {
+    $pieces[] = new My_Event_Schema_Piece( $context );
+    return $pieces;
+}, 10, 2 );
+```
+
+### Disabling a piece
+
+```php
+// Remove the BreadcrumbList from the schema graph
+add_filter( 'wpseo_schema_breadcrumb', '__return_false' );
+```
+
+### Changing the article type per post
+
+```php
+// Force all posts in the "news" category to use NewsArticle
+add_filter( 'wpseo_schema_article_type', function( string $type, $post ) {
+    if ( has_category( 'news', $post ) ) {
+        return 'NewsArticle';
+    }
+    return $type;
+}, 10, 2 );
+```
+
+<Info>
+The full list of available `wpseo_schema_*` filters mirrors the class names in `src/generators/schema/`. A filter exists for each piece: `wpseo_schema_webpage`, `wpseo_schema_organization`, `wpseo_schema_person`, `wpseo_schema_article`, etc.
+</Info>
+
+## Validating your schema
+
+After publishing a page, test its structured data with:
+
+- **[Google Rich Results Test](https://search.google.com/test/rich-results)** — checks whether your schema qualifies for rich results and highlights any errors or warnings.
+- **[Schema.org Validator](https://validator.schema.org/)** — validates Schema.org conformance independent of Google's specific requirements.
+- **Google Search Console → Enhancements** — shows site-wide rich result status and any crawl-time schema errors.
+
+<Tip>
+Use the Rich Results Test during development to confirm new schema pieces are valid before pushing to production. Bookmark the direct URL for your staging environment's test results.
+</Tip>

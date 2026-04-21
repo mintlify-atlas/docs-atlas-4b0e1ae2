@@ -1,0 +1,117 @@
+{
+  "projectType": "saas",
+  "projectName": "Yoast SEO",
+  "projectDescription": "A comprehensive WordPress plugin that optimizes content for search engines with real-time SEO and readability analysis, XML sitemaps, structured data (Schema.org), and social media metadata.",
+  "theme": "almond",
+  "primaryColor": "#8abd46",
+  "lightColor": "#a12b6a",
+  "darkColor": "#cd90b4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/seo-analysis",
+              "features/readability-analysis",
+              "features/xml-sitemaps",
+              "features/schema-structured-data",
+              "features/social-metadata"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/general-settings",
+              "configuration/breadcrumbs",
+              "configuration/robots-txt",
+              "configuration/crawl-settings"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/woocommerce",
+              "integrations/elementor",
+              "integrations/third-party"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Guide",
+        "groups": [
+          {
+            "group": "YoastSEO.js Library",
+            "pages": [
+              "developer/yoastseo-js",
+              "developer/paper",
+              "developer/assessments",
+              "developer/researchers"
+            ]
+          },
+          {
+            "group": "WordPress Integration",
+            "pages": [
+              "developer/php-hooks-filters",
+              "developer/rest-api",
+              "developer/indexables"
+            ]
+          },
+          {
+            "group": "Extending Yoast SEO",
+            "pages": [
+              "developer/custom-assessments",
+              "developer/schema-customization",
+              "developer/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time SEO analysis with keyphrase optimization scoring",
+    "Readability analysis with Flesch Reading Ease and sentence-level feedback",
+    "XML sitemaps for pages, posts, categories, images, and videos",
+    "Structured data (Schema.org) generation for rich search results",
+    "Open Graph and Twitter Card metadata for social sharing",
+    "Breadcrumb navigation with Schema.org BreadcrumbList markup",
+    "Inclusive language analysis to improve content accessibility",
+    "Multilingual support for 20+ languages",
+    "WooCommerce integration with product-specific SEO checks",
+    "Cornerstone content analysis with stricter SEO standards",
+    "Internal linking suggestions and link count columns",
+    "Indexables database for fast metadata access and crawl control",
+    "AI-powered content improvement suggestions",
+    "First-time configuration wizard for initial site setup",
+    "Seamless integration with Elementor, WPML, and other plugins"
+  ],
+  "publicApiSurface": [
+    "AnalysisWorkerWrapper (yoastseo npm package)",
+    "AnalysisWebWorker (yoastseo npm package)",
+    "Paper (yoastseo npm package)",
+    "Assessment (yoastseo npm package)",
+    "Assessor / SeoAssessor / ContentAssessor / TaxonomyAssessor (yoastseo npm package)",
+    "Pluggable (YoastSEO.app.registerPlugin / registerModification)",
+    "wpseo_title filter (PHP)",
+    "wpseo_metadesc filter (PHP)",
+    "wpseo_canonical filter (PHP)",
+    "wpseo_robots filter (PHP)",
+    "wpseo_schema_* filters (PHP)",
+    "wpseo_breadcrumb_links filter (PHP)",
+    "GET /wp-json/yoast/v1/get_head REST endpoint",
+    "GET /wp-json/yoast/v1/indexing-stats REST endpoint",
+    "Yoast\\WP\\SEO\\Values\\Meta_Tags_Context surface (PHP)"
+  ]
+}

@@ -1,0 +1,134 @@
+---
+title: "XML Sitemaps: Help Search Engines Find Your Content"
+description: "Learn how Yoast SEO automatically generates XML sitemaps for posts, pages, taxonomies, and images, and how to submit them to Google and Bing."
+---
+
+An XML sitemap is a file that lists every URL on your website and provides metadata about each page — when it was last updated, how often it changes, and how important it is relative to other pages. Search engines like Google and Bing read this file to discover and crawl your content more efficiently.
+
+Yoast SEO generates XML sitemaps automatically. You do not need to write any code or install a separate plugin. As soon as you activate Yoast SEO, sitemaps are created and kept up to date as you publish, edit, and delete content.
+
+## Accessing your sitemap
+
+Your main sitemap index is always available at:
+
+```
+https://yourdomain.com/sitemap_index.xml
+```
+
+This index file lists links to all sub-sitemaps. Yoast SEO splits content into separate sitemap files by content type to keep individual files manageable (Google recommends no more than 50,000 URLs per sitemap file).
+
+## Sitemap types
+
+Yoast SEO creates a sub-sitemap for each enabled content type and taxonomy:
+
+| Sitemap file | Content included |
+|---|---|
+| `post-sitemap.xml` | Blog posts |
+| `page-sitemap.xml` | Static pages |
+| `category-sitemap.xml` | Post categories |
+| `post_tag-sitemap.xml` | Post tags |
+| `author-sitemap.xml` | Author archive pages |
+| `product-sitemap.xml` | WooCommerce products (if installed) |
+| Custom post type sitemaps | Any registered custom post type |
+| Custom taxonomy sitemaps | Any registered custom taxonomy |
+
+### Image sitemaps
+
+Yoast SEO automatically adds `<image:image>` entries to each URL in the sitemap when images are attached to that content. This follows the [Google Image Sitemap extension](https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps) and helps image search indexing.
+
+<Note>
+Yoast SEO does not generate a standalone image sitemap. Image data is embedded inline within the post/page sitemap entries, which is the format Google recommends.
+</Note>
+
+## Enabling and disabling sitemaps per content type
+
+You can control which post types and taxonomies appear in the sitemap from **Yoast SEO → Settings → Content types** (for post types) and **Yoast SEO → Settings → Taxonomies** (for taxonomies).
+
+For each content type you can choose:
+- **Show in sitemap:** Yes / No
+- **Allow search engines to show this content in results:** controls the `robots` meta tag, which independently governs indexing
+
+You can also exclude individual URLs from the sitemap by setting **Allow search engines to show this post in results** to **No** in the Yoast SEO metabox on that specific post or page.
+
+<Warning>
+Setting a post type to "No" in the sitemap only removes it from `sitemap_index.xml`. It does not block crawling or indexing. Use the `noindex` robots directive for that purpose.
+</Warning>
+
+## Submitting to Google Search Console
+
+<Steps>
+  <Step title="Open Google Search Console">
+    Go to [Google Search Console](https://search.google.com/search-console) and select your property.
+  </Step>
+  <Step title="Navigate to Sitemaps">
+    In the left sidebar, select **Indexing → Sitemaps**.
+  </Step>
+  <Step title="Enter your sitemap URL">
+    In the **Add a new sitemap** field, enter `sitemap_index.xml` (Search Console will prepend your domain automatically).
+  </Step>
+  <Step title="Submit">
+    Click **Submit**. Google will begin crawling the sitemap index and all linked sub-sitemaps. Status updates appear in the Sitemaps report within a few days.
+  </Step>
+</Steps>
+
+## Submitting to Bing Webmaster Tools
+
+<Steps>
+  <Step title="Open Bing Webmaster Tools">
+    Go to [Bing Webmaster Tools](https://www.bing.com/webmasters) and sign in.
+  </Step>
+  <Step title="Add your site">
+    If your site is not already added, click **Add a site** and follow the verification steps.
+  </Step>
+  <Step title="Submit sitemap">
+    Go to **Sitemaps** in the left navigation, click **Submit sitemap**, and enter your full sitemap URL: `https://yourdomain.com/sitemap_index.xml`.
+  </Step>
+</Steps>
+
+## Troubleshooting common sitemap issues
+
+<AccordionGroup>
+  <Accordion title="Sitemap returns a 404 error">
+    This usually means WordPress permalink settings are not flushed. Go to **Settings → Permalinks** in the WordPress admin and click **Save Changes** (no changes needed — just saving flushes the rewrite rules). If the issue persists, check that no caching plugin is serving a stale 404 response.
+  </Accordion>
+
+  <Accordion title="Content is missing from the sitemap">
+    Check the following in order:
+    1. The content type is set to **Show in sitemap: Yes** in **Yoast SEO → Settings**.
+    2. The individual post or page has not been set to `noindex` in its Yoast SEO metabox.
+    3. The post status is `publish` — drafts, pending, and private posts are excluded automatically.
+    4. Your caching plugin may be serving an old version of the sitemap. Purge the cache after publishing new content.
+  </Accordion>
+
+  <Accordion title="Sitemap is very slow to load">
+    Yoast SEO caches sitemap output. If your site has tens of thousands of posts, the first load after a cache clear can be slow. Ensure object caching (Redis or Memcached) is configured on your server. You can also increase the number of URLs per sitemap (and thus reduce sub-sitemap count) via the `wpseo_sitemap_entries_per_page` filter.
+
+    ```php
+    add_filter( 'wpseo_sitemap_entries_per_page', function() {
+        return 1000;
+    } );
+    ```
+  </Accordion>
+
+  <Accordion title="Google reports 'Couldn't fetch' in Search Console">
+    This means Googlebot cannot reach your sitemap URL. Common causes:
+    - The URL is blocked in `robots.txt` — Yoast SEO automatically adds the sitemap reference to `robots.txt`, but custom `robots.txt` files may override this.
+    - HTTP authentication is enabled on the site (staging environments).
+    - A firewall or security plugin is blocking Googlebot.
+  </Accordion>
+
+  <Accordion title="Author sitemap shows users I don't want indexed">
+    The author sitemap includes all users who have published at least one public post. To exclude a specific author, set their author archive to `noindex` in **Yoast SEO → Settings → Taxonomies** or use the `wpseo_sitemap_exclude_author` filter:
+
+    ```php
+    add_filter( 'wpseo_sitemap_exclude_author', function( $user_id ) {
+        $excluded_ids = [ 5, 12 ]; // user IDs to exclude
+        return in_array( $user_id, $excluded_ids, true );
+    } );
+    ```
+  </Accordion>
+
+  <Accordion title="Custom post types are not appearing in the sitemap">
+    Custom post types must be registered with `'public' => true` in `register_post_type()` for Yoast SEO to pick them up. After registration, check **Yoast SEO → Settings → Content types** to confirm the sitemap is enabled for that type.
+  </Accordion>
+</AccordionGroup>

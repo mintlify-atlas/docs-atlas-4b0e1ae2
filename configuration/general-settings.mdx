@@ -1,0 +1,133 @@
+---
+title: 'Configure Yoast SEO search appearance and settings'
+description: 'Set site name, title separator, Knowledge Graph, title templates, and meta robots defaults in Yoast SEO via SEO → Search Appearance in WordPress admin.'
+---
+
+The general settings in Yoast SEO control how your site appears in search results across all pages and post types. Most of these options live under **SEO > Search Appearance** in your WordPress admin. Getting these right once saves you from having to configure each piece of content individually.
+
+## Where to find settings
+
+Navigate to **SEO > Search Appearance** in the WordPress admin sidebar. The page is divided into tabs: **General**, **Content types**, **Media**, **Taxonomies**, and **Archives**. The options below correspond to fields in these tabs.
+
+<AccordionGroup>
+  <Accordion title="Site name and title separator">
+    The **site name** is the name appended or prepended to title tags across your site. Yoast SEO pulls this from your WordPress site title by default (Settings > General), but you can override it under the **General** tab in Search Appearance.
+
+    The **title separator** character appears between the page title and the site name in the `<title>` tag. Available options include:
+
+    | Separator | Character |
+    |-----------|-----------|
+    | Dash      | `-`       |
+    | Ndash     | `–`       |
+    | Pipe      | `\|`      |
+    | Bullet    | `•`       |
+    | Greater than | `>`  |
+    | Less than | `<`       |
+
+    Choose a separator that matches your brand style. The pipe (`|`) and dash (`-`) are the most common choices.
+
+    **Example output:**
+
+    ```
+    About Us | Acme Corp
+    Contact – Acme Corp
+    ```
+  </Accordion>
+
+  <Accordion title="Knowledge Graph: Organization or Person">
+    The Knowledge Graph setting tells search engines what entity your site represents. This data is output as structured data (Schema.org) and influences your site's appearance in Google's Knowledge Panel.
+
+    You can set your site to represent either an **Organization** or a **Person**. This choice is configured during first-time setup (SEO > General > First-time configuration) and can also be updated under **SEO > Search Appearance > General**.
+
+    **Organization settings:**
+    - Organization name — defaults to your WordPress site name if left blank
+    - Organization logo — recommended size: at least 112×112 pixels, square images preferred
+    - Social profiles — Facebook page URL, Twitter/X username, and other social URLs are associated with the organization in structured data
+
+    **Person settings:**
+    - Select the WordPress user account that represents the site owner
+    - Person logo/avatar — used in person schema output
+    - Social profile URLs are pulled from the selected user's profile
+
+    <Note>
+      If you have Yoast SEO Local installed, the Knowledge Graph type is forced to **Organization** and cannot be changed to Person.
+    </Note>
+
+    Social profiles you enter here (Facebook, Twitter/X, and others) are included in the `Organization` or `Person` schema block, helping search engines connect your social presence to your website.
+  </Accordion>
+
+  <Accordion title="Search appearance defaults: meta robots and canonical">
+    Under **SEO > Search Appearance > Content types** and **Taxonomies**, each content type and taxonomy has a toggle to set whether it should be **indexed** or **not indexed** by default.
+
+    - **Index** — allows search engines to index and show pages of this type in search results (outputs `index, follow`)
+    - **No index** — instructs search engines not to index pages of this type (outputs `noindex`)
+
+    The `is_robots_noindex` flag is evaluated per indexable. If no individual override is set, Yoast SEO falls back to the global setting for that post type or taxonomy.
+
+    Canonical URLs are generated automatically by Yoast SEO for all indexable content. You do not need to configure them manually; they are based on the permalink of each page.
+
+    <Warning>
+      Setting a post type or taxonomy to **noindex** will remove all content of that type from search engine results. Verify this is intentional before saving.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Title templates for post types and taxonomies">
+    Title templates let you define a default `<title>` tag pattern for each content type. They use **replacement variables** that Yoast SEO substitutes with real values at render time.
+
+    Templates are configured per post type and taxonomy under:
+    - **SEO > Search Appearance > Content types** — for posts, pages, and custom post types
+    - **SEO > Search Appearance > Taxonomies** — for categories, tags, and custom taxonomies
+    - **SEO > Search Appearance > Archives** — for author and date archives
+
+    Common replacement variables:
+
+    | Variable          | Output                                   |
+    |-------------------|------------------------------------------|
+    | `%%title%%`       | The post or page title                   |
+    | `%%sitename%%`    | Your site name                           |
+    | `%%sep%%`         | The title separator character            |
+    | `%%category%%`    | The primary category of a post           |
+    | `%%tag%%`         | Tags assigned to a post                  |
+    | `%%term_title%%`  | The taxonomy term name                   |
+    | `%%page%%`        | Current page number (for paginated pages) |
+    | `%%currentyear%%` | The current year                         |
+
+    **Default template example:**
+
+    ```
+    %%title%% %%sep%% %%sitename%%
+    ```
+
+    This produces output such as `How to Configure Yoast SEO | Acme Corp`.
+
+    Keep titles between 50–60 characters to avoid truncation in search results. The template editor in Yoast SEO shows a live preview of how the title will appear.
+  </Accordion>
+
+  <Accordion title="Meta description templates">
+    Meta description templates work the same way as title templates. Set a default pattern under each content type and taxonomy tab. Individual posts and pages can override this template from the Yoast SEO meta box in the editor.
+
+    Recommended meta description length is 130–155 characters. Descriptions longer than this are truncated in search results.
+
+    Example template:
+
+    ```
+    Learn about %%title%% on %%sitename%%. %%excerpt%%
+    ```
+
+    The `%%excerpt%%` variable inserts the post's manual excerpt, or the first sentences of the content if no excerpt is set.
+
+    <Tip>
+      Write meta description templates that include a natural call to action. Generic templates work as a safety net, but manually written descriptions for high-traffic pages almost always perform better.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Social profiles
+
+Social profile URLs entered in the Knowledge Graph settings are included in your site's structured data output. For organizations, you can add:
+
+- Facebook page URL
+- Twitter/X username
+- Additional social URLs (LinkedIn, YouTube, Instagram, Pinterest, etc.)
+
+These are entered during first-time configuration or under **SEO > Search Appearance > General > Organization**. Yoast SEO uses them to build the `sameAs` property in the Organization or Person schema block.
